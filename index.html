@@ -17,15 +17,15 @@
     .b-purple { background: rgba(167,139,250,0.15); color: #A78BFA; }
     .b-amber { background: rgba(245,158,11,0.15); color: #F59E0B; }
     .b-pink { background: rgba(236,72,153,0.15); color: #EC4899; }
-    .setup { margin-top: 24px; padding: 14px; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); border-radius: 8px; font-size: 12px; color: #EF4444; display: none; }
   </style>
   <script>
+    // Forward any ?api=... override to the linked dashboards (useful for dev against a non-prod backend).
+    // In normal use, the dashboards default to https://api.southasiansocials.com on their own.
     const api = new URLSearchParams(location.search).get('api');
     function makeUrl(page) {
       return api ? `${page}?api=${encodeURIComponent(api)}` : page;
     }
     window.addEventListener('DOMContentLoaded', () => {
-      if (!api) document.getElementById('setup-msg').style.display = 'block';
       document.querySelectorAll('[data-page]').forEach(el => {
         el.href = makeUrl(el.dataset.page);
       });
@@ -35,7 +35,7 @@
 <body>
   <div class="hub">
     <h1>South Asian Socials</h1>
-    <p>Dashboard Hub â pick a view</p>
+    <p>Dashboard Hub — pick a view</p>
     <div class="links">
       <a data-page="content_calendar_live.html" href="#">Growth Calendar <span class="badge b-green">LIVE</span></a>
       <a data-page="ig_post_analytics.html" href="#">Post Analytics <span class="badge b-purple">DEEP DIVE</span></a>
@@ -43,9 +43,6 @@
       <a data-page="ig_live_dashboard.html" href="#">IG Live Dashboard <span class="badge b-green">LIVE</span></a>
       <a data-page="ig_competitors.html" href="#">Competitor Intel <span class="badge b-pink">COMPARE</span></a>
       <a data-page="eventbrite_live_dashboard.html" href="#">Events Dashboard <span class="badge b-amber">EVENTS</span></a>
-    </div>
-    <div class="setup" id="setup-msg">
-      No API URL set. Add <strong>?api=http://YOUR_SERVER_IP:3001</strong> to the URL to connect to your backend.
     </div>
   </div>
 </body>
