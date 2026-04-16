@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>South Asian Socials — Instagram Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0C0C0C;
+  --bg-card: #141414;
+  --bg-elevated: #1A1A1A;
+  --bg-input: #111111;
+  --border: #2A2A2A;
+  --border-focus: #444;
+  --text: #F0F0F0;
+  --text-muted: #888;
+  --text-dim: #555;
+  --accent: #FFFFFF;
+  --green: #22C55E;
+  --red: #EF4444;
+  --amber: #F59E0B;
+  --blue: #60A5FA;
+  --purple: #A78BFA;
+  --pink: #EC4899;
+  --cyan: #22D3EE;
+  --radius: 8px;
+  --radius-sm: 5px;
+  --radius-pill: 99px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  padding: 1.5rem 1.75rem 4rem;
+  max-width: 1400px; margin: 0 auto;
+}
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.top-bar {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; flex-wrap: wrap;
+  gap: 14px; margin-bottom: 1.75rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.top-bar h1 {
+  font-size: 18px; font-weight: 600;
+  color: var(--accent); letter-spacing: -0.4px;
+}
+.top-bar .subtitle {
+  font-size: 12px; color: var(--text-muted);
+  margin-top: 4px;
+}
+.nav-links { display: flex; gap: 6px; }
+.nav-link {
+  font-size: 12px; padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  transition: all 0.12s;
+}
+.nav-link:hover { border-color: var(--border-focus); color: var(--text); text-decoration: none; }
+.nav-link.active {
+  background: var(--accent); color: #000;
+  border-color: var(--accent); font-weight: 600;
+}
+
+/* Stat cards */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px; margin-bottom: 1.5rem;
+}
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  transition: border-color 0.15s;
+}
+.stat-card:hover { border-color: #333; }
+.stat-card .label {
+  font-size: 10px; color: var(--text-muted);
+  margin-bottom: 8px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.07em;
+}
+.stat-card .value {
+  font-size: 22px; font-weight: 700;
+  color: var(--text); letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+.stat-card .sub {
+  font-size: 11px; color: var(--text-muted); margin-top: 4px;
+}
+.stat-card .value.green { color: var(--green); }
+.stat-card .value.blue { color: var(--blue); }
+.stat-card .value.purple { color: var(--purple); }
+.stat-card .value.pink { color: var(--pink); }
+.stat-card .value.amber { color: var(--amber); }
+.stat-card .value.cyan { color: var(--cyan); }
+
+/* Section header */
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px; margin-top: 1.75rem;
+}
+.section-header h2 {
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.1em;
+}
+.section-header .hint {
+  font-size: 11px; color: var(--text-dim);
+}
+
+/* Grid layouts */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.three-col {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 900px) {
+  .two-col, .three-col { grid-template-columns: 1fr; }
+}
+
+.panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+.panel h3 {
+  font-size: 13px; font-weight: 600;
+  color: var(--text); margin-bottom: 4px;
+}
+.panel .panel-sub {
+  font-size: 11px; color: var(--text-muted);
+  margin-bottom: 16px;
+}
+.chart-wrap {
+  position: relative; height: 260px;
+}
+.chart-wrap.sm { height: 220px; }
+.chart-wrap.lg { height: 320px; }
+
+/* Type comparison cards */
+.type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 1.5rem;
+}
+.type-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+.type-card .type-title {
+  font-size: 11px; color: var(--text-muted);
+  font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.1em; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.type-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.type-card .big-num {
+  font-size: 20px; font-weight: 700;
+  letter-spacing: -0.5px; margin-bottom: 4px;
+}
+.type-metrics {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin-top: 12px;
+  padding-top: 12px; border-top: 1px solid var(--border);
+}
+.type-metric .mlabel {
+  font-size: 10px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.type-metric .mval {
+  font-size: 14px; font-weight: 600;
+  margin-top: 2px;
+}
+@media (max-width: 900px) {
+  .type-grid { grid-template-columns: 1fr; }
+}
+
+/* Top posts table */
+.posts-table {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+table {
+  width: 100%; border-collapse: collapse;
+  font-size: 12px;
+}
+th {
+  text-align: left; padding: 11px 14px;
+  color: var(--text-muted); font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  font-size: 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+  position: sticky; top: 0;
+}
+th.num { text-align: right; }
+td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+td.num { text-align: right; }
+tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: rgba(255,255,255,0.02); }
+.pill {
+  display: inline-block; padding: 2px 8px;
+  font-size: 10px; border-radius: var(--radius-pill);
+  font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.pill-image { background: rgba(96,165,250,0.15); color: var(--blue); }
+.pill-reel { background: rgba(167,139,250,0.15); color: var(--purple); }
+.pill-carousel { background: rgba(236,72,153,0.15); color: var(--pink); }
+.desc-cell {
+  max-width: 280px;
+  overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; color: var(--text-muted);
+}
+
+/* Callout */
+.callout {
+  background: linear-gradient(135deg, rgba(96,165,250,0.08), rgba(167,139,250,0.08));
+  border: 1px solid rgba(96,165,250,0.2);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-bottom: 1.5rem;
+}
+.callout .cl-title {
+  font-size: 11px; text-transform: uppercase;
+  color: var(--blue); font-weight: 600;
+  letter-spacing: 0.1em; margin-bottom: 8px;
+}
+.callout .cl-body {
+  font-size: 13px; color: var(--text); line-height: 1.5;
+}
+.callout .cl-body strong { color: var(--accent); }
+
+/* Insight list */
+.insights {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.insight {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.insight .ins-label {
+  font-size: 10px; text-transform: uppercase;
+  color: var(--text-muted); letter-spacing: 0.07em;
+  font-weight: 600; margin-bottom: 6px;
+}
+.insight .ins-val {
+  font-size: 16px; font-weight: 600;
+  color: var(--text); margin-bottom: 4px;
+}
+.insight .ins-sub {
+  font-size: 11px; color: var(--text-muted);
+  line-height: 1.4;
+}
+@media (max-width: 700px) {
+  .insights { grid-template-columns: 1fr; }
+}
+
+/* Filter */
+.filter-row {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 1rem; align-items: center;
+}
+select, input[type="text"] {
+  font-size: 12px; padding: 7px 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text); outline: none;
+}
+input[type="text"] { flex: 1; min-width: 180px; }
+
+.scroll-tbl { max-height: 520px; overflow-y: auto; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div>
+    <h1>South Asian Socials — Instagram Dashboard</h1>
+    <div class="subtitle" id="ig-subtitle">@southasiansocials · Jan 14 – Apr 13, 2026 · 58 posts</div>
+  </div>
+  <div class="nav-links">
+    <button class="nav-link" id="fetch-live-btn" onclick="fetchLive()" style="cursor:pointer;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text-muted);" title="Pull latest data from Instagram API">↻ Fetch live</button>
+    <a href="eventbrite_live_dashboard.html" class="nav-link">Events</a>
+    <a href="instagram_dashboard.html" class="nav-link active">Instagram</a>
+    <a href="ig_post_analytics.html" class="nav-link">Post Analytics</a>
+    <a href="ig_live_dashboard.html" class="nav-link">IG Live</a>
+    <a href="ig_competitors.html" class="nav-link">Competitors</a>
+    <a href="content_calendar_live.html" class="nav-link">Calendar Live</a>
+  </div>
+</div>
+
+<!-- HEADLINE KPIs -->
+<div class="stats-row">
+  <div class="stat-card"><div class="label">Views</div><div class="value" id="k-views">—</div><div class="sub" id="k-views-sub"></div></div>
+  <div class="stat-card"><div class="label">Reach</div><div class="value blue" id="k-reach">—</div><div class="sub" id="k-reach-sub"></div></div>
+  <div class="stat-card"><div class="label">Shares</div><div class="value cyan" id="k-shares">—</div><div class="sub">virality driver</div></div>
+  <div class="stat-card"><div class="label">Saves</div><div class="value amber" id="k-saves">—</div><div class="sub">intent signal</div></div>
+  <div class="stat-card"><div class="label">Likes</div><div class="value pink" id="k-likes">—</div></div>
+  <div class="stat-card"><div class="label">Comments</div><div class="value" id="k-comments">—</div></div>
+  <div class="stat-card"><div class="label">New follows</div><div class="value green" id="k-follows">—</div><div class="sub">from these 58 posts</div></div>
+  <div class="stat-card"><div class="label">Avg engagement</div><div class="value purple" id="k-eng">—</div><div class="sub">per reached user</div></div>
+</div>
+
+<div class="callout">
+  <div class="cl-title">Headline</div>
+  <div class="cl-body" id="headline"></div>
+</div>
+
+<!-- POST TYPE BREAKDOWN -->
+<div class="section-header">
+  <h2>Performance by Post Type</h2>
+  <span class="hint">Averages per post · all posts in period</span>
+</div>
+<div class="type-grid" id="type-grid"></div>
+
+<!-- WEEKLY TREND -->
+<div class="section-header"><h2>Weekly Trend</h2><span class="hint">Shares drove the March breakout</span></div>
+<div class="two-col">
+  <div class="panel">
+    <h3>Views & Reach by Week</h3>
+    <div class="panel-sub">Weekly totals — reach spiked mid‑March when share‑heavy image posts took off</div>
+    <div class="chart-wrap lg"><canvas id="weeklyChart"></canvas></div>
+  </div>
+  <div class="panel">
+    <h3>Shares & New Follows by Week</h3>
+    <div class="panel-sub">Shares strongly correlate with follower acquisition</div>
+    <div class="chart-wrap lg"><canvas id="weeklyShareChart"></canvas></div>
+  </div>
+</div>
+
+<!-- TIMING -->
+<div class="section-header"><h2>Timing — When to Post</h2><span class="hint">Averages per post on that day / hour bucket</span></div>
+<div class="two-col">
+  <div class="panel">
+    <h3>Day of Week</h3>
+    <div class="panel-sub">Friday and Monday posts go the furthest on average</div>
+    <div class="chart-wrap"><canvas id="dowChart"></canvas></div>
+  </div>
+  <div class="panel">
+    <h3>Hour of Day (bucketed)</h3>
+    <div class="panel-sub">Evenings and late nights win on engagement rate</div>
+    <div class="chart-wrap"><canvas id="hourChart"></canvas></div>
+  </div>
+</div>
+
+<!-- TOP POSTS -->
+<div class="section-header">
+  <h2>Top 10 Posts by Views</h2>
+  <span class="hint">Click a row to open on Instagram</span>
+</div>
+<div class="posts-table">
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Type</th>
+        <th>Caption</th>
+        <th class="num">Views</th>
+        <th class="num">Reach</th>
+        <th class="num">Shares</th>
+        <th class="num">Saves</th>
+        <th class="num">Follows</th>
+        <th class="num">Eng %</th>
+      </tr>
+    </thead>
+    <tbody id="top-posts-body"></tbody>
+  </table>
+</div>
+
+<!-- ALL POSTS -->
+<div class="section-header">
+  <h2>All Posts</h2>
+  <span class="hint" id="all-count">—</span>
+</div>
+<div class="filter-row">
+  <select id="f-type">
+    <option value="">All types</option>
+    <option value="IG image">IG image</option>
+    <option value="IG reel">IG reel</option>
+    <option value="IG carousel">IG carousel</option>
+  </select>
+  <select id="f-sort">
+    <option value="date_desc">Newest first</option>
+    <option value="date_asc">Oldest first</option>
+    <option value="views">Most views</option>
+    <option value="reach">Most reach</option>
+    <option value="shares">Most shares</option>
+    <option value="follows">Most follows</option>
+    <option value="eng">Best engagement %</option>
+  </select>
+  <input id="f-search" type="text" placeholder="🔍  Search caption..." />
+</div>
+<div class="posts-table scroll-tbl">
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Type</th>
+        <th>Caption</th>
+        <th class="num">Views</th>
+        <th class="num">Reach</th>
+        <th class="num">Shares</th>
+        <th class="num">Saves</th>
+        <th class="num">Follows</th>
+        <th class="num">Eng %</th>
+      </tr>
+    </thead>
+    <tbody id="all-posts-body"></tbody>
+  </table>
+</div>
+
+<!-- INSIGHTS -->
+<div class="section-header"><h2>Key Takeaways</h2></div>
+<div class="insights" id="insights-grid"></div>
+
+<script>
+const DATA = {"totals":{"posts":58,"views":400847,"reach":379206,"likes":898,"shares":12684,"saves":893,"comments":152,"follows":654,"avg_eng_rate":1.76,"date_start":"Jan 14, 2026","date_end":"Apr 13, 2026"},"weekly":[{"Week":"Apr 06","Views":10248,"Reach":6530,"Likes":39,"Shares":52,"Saves":23,"Follows":4,"Posts":3},{"Week":"Apr 13","Views":1308,"Reach":918,"Likes":5,"Shares":15,"Saves":1,"Follows":1,"Posts":1},{"Week":"Feb 02","Views":10348,"Reach":4724,"Likes":25,"Shares":26,"Saves":3,"Follows":2,"Posts":3},{"Week":"Feb 09","Views":9090,"Reach":4865,"Likes":28,"Shares":13,"Saves":11,"Follows":0,"Posts":3},{"Week":"Feb 16","Views":21262,"Reach":13325,"Likes":27,"Shares":74,"Saves":19,"Follows":20,"Posts":5},{"Week":"Feb 23","Views":12649,"Reach":6721,"Likes":49,"Shares":35,"Saves":12,"Follows":0,"Posts":5},{"Week":"Jan 12","Views":8579,"Reach":4667,"Likes":20,"Shares":46,"Saves":8,"Follows":3,"Posts":3},{"Week":"Jan 19","Views":23602,"Reach":15732,"Likes":42,"Shares":100,"Saves":15,"Follows":6,"Posts":6},{"Week":"Jan 26","Views":9329,"Reach":5187,"Likes":29,"Shares":40,"Saves":13,"Follows":3,"Posts":3},{"Week":"Mar 02","Views":30879,"Reach":52061,"Likes":71,"Shares":345,"Saves":60,"Follows":60,"Posts":7},{"Week":"Mar 09","Views":31545,"Reach":20176,"Likes":66,"Shares":478,"Saves":58,"Follows":60,"Posts":5},{"Week":"Mar 16","Views":95635,"Reach":99771,"Likes":168,"Shares":3542,"Saves":268,"Follows":254,"Posts":5},{"Week":"Mar 23","Views":101284,"Reach":121857,"Likes":244,"Shares":7590,"Saves":339,"Follows":148,"Posts":5},{"Week":"Mar 30","Views":35089,"Reach":22672,"Likes":85,"Shares":328,"Saves":63,"Follows":93,"Posts":4}],"bytype_summary":{"IG carousel":{"count":18,"avg_views":3792.0,"avg_reach":1840.0,"avg_shares":7.7,"avg_saves":2.6,"avg_follows":0.6,"avg_eng_rate":1.16,"total_views":68255,"total_follows":10},"IG image":{"count":18,"avg_views":14074.0,"avg_reach":15523.0,"avg_shares":677.6,"avg_saves":42.6,"avg_follows":29.6,"avg_eng_rate":2.49,"total_views":253332,"total_follows":533},"IG reel":{"count":22,"avg_views":3603.0,"avg_reach":3030.0,"avg_shares":15.9,"avg_saves":3.7,"avg_follows":5.0,"avg_eng_rate":1.66,"total_views":79260,"total_follows":111}},"top_posts":[{"Publish time":"2026-03-27 09:37","Post type":"IG image","Permalink":"https://www.instagram.com/p/DWZRLYOkRpF/","Description":"Toronto\u2026 you did your thing \ud83d\udc40\u2728\n\nOur last mixer SOLD OUT before it even happened \u2014 so we had to open up another one \ud83d\udcab\n\nIf","Views":79232,"Reach":107223,"Likes":212,"Shares":7363,"Saves":308,"Comments":36,"Follows":135,"Eng_rate":7.39},{"Publish time":"2026-03-20 18:08","Post type":"IG image","Permalink":"https://www.instagram.com/p/DWIKAniEfAs/","Description":"NYC, this one\u2019s for the serious singles. \u2728\n\nJoin us for a South Asian Singles Mixer for Marriage-Minded Professionals \u2014 ","Views":44788,"Reach":40267,"Likes":92,"Shares":1170,"Saves":138,"Comments":18,"Follows":156,"Eng_rate":3.52},{"Publish time":"2026-03-16 07:30","Post type":"IG image","Permalink":"https://www.instagram.com/p/DV8uBOKEb-r/","Description":"Born & raised in Canada, but still love a little South Asian vibe?\n\nJoin us for a South Asian Singles Mixer where cultur","Views":39690,"Reach":51319,"Likes":56,"Shares":2342,"Saves":120,"Comments":38,"Follows":95,"Eng_rate":4.98},{"Publish time":"2026-03-10 21:10","Post type":"IG image","Permalink":"https://www.instagram.com/p/DVuuqaBE5Qr/","Description":"New York\u2026 it\u2019s happening. \ud83d\uddfd\u2728\nOur first South Asian Singles Mixer in NYC is finally here.\nA room full of amazing people, ","Views":18896,"Reach":12279,"Likes":28,"Shares":445,"Saves":53,"Comments":3,"Follows":57,"Eng_rate":4.31},{"Publish time":"2026-03-30 08:48","Post type":"IG image","Permalink":"https://www.instagram.com/p/DWg54UKkR0V/","Description":"Ready to meet someone who\u2019s on the same page as you? \ud83d\udcab\n\nJoin us for an evening of meaningful connections, great conversa","Views":13869,"Reach":8453,"Likes":15,"Shares":231,"Saves":36,"Comments":1,"Follows":26,"Eng_rate":3.35},{"Publish time":"2026-04-02 10:58","Post type":"IG reel","Permalink":"https://www.instagram.com/reel/DWo3IsQj0s9/","Description":"Are you still waiting for someone to introduce you?\nThe room is full. The vibes are real.\nNo awkward silences, just good","Views":9753,"Reach":7521,"Likes":35,"Shares":60,"Saves":12,"Comments":1,"Follows":64,"Eng_rate":1.44},{"Publish time":"2026-02-22 09:06","Post type":"IG reel","Permalink":"https://www.instagram.com/reel/DVEWR5-D4qw/","Description":"This isn\u2019t a dating app.\nIt\u2019s better. \u2728\n\n\ud83d\udc49 Come see what everyone\u2019s talking about\n\n#singlesmixer #southasiansocial #meet","Views":9684,"Reach":6581,"Likes":8,"Shares":28,"Saves":5,"Comments":4,"Follows":15,"Eng_rate":0.68},{"Publish time":"2026-01-24 07:13","Post type":"IG reel","Permalink":"https://www.instagram.com/reel/DT5eTysEYwz/","Description":"One night. No screens. Just chemistry. \u2728\nMeet people the way it was meant to happen \u2014 in person.\n\nSpots are limited \u2014 bo","Views":9081,"Reach":7154,"Likes":10,"Shares":47,"Saves":8,"Comments":0,"Follows":2,"Eng_rate":0.91},{"Publish time":"2026-03-06 19:36","Post type":"IG image","Permalink":"https://www.instagram.com/p/DVkX2hNkZyB/","Description":"Dating apps getting exhausting?\nMaybe it\u2019s time to meet someone face-to-face.\n\nJoin us at our South Asian Singles Mixer ","Views":8382,"Reach":32436,"Likes":25,"Shares":242,"Saves":34,"Comments":3,"Follows":39,"Eng_rate":0.94},{"Publish time":"2026-04-05 19:37","Post type":"IG carousel","Permalink":"https://www.instagram.com/p/DWxhKrdE-Xa/","Description":"Still thinking about coming? This is your sign \u2728\n\nA room full of South Asians, real conversations, and zero awkward ener","Views":7702,"Reach":3477,"Likes":26,"Shares":29,"Saves":10,"Comments":0,"Follows":2,"Eng_rate":1.87}],"dow":[{"DoW":"Monday","Views":8883.25,"Reach":9733.625,"Eng_rate":3.08125,"Posts":8},{"DoW":"Tuesday","Views":4893.375,"Reach":3186.5,"Eng_rate":1.3712499999999999,"Posts":8},{"DoW":"Wednesday","Views":4060.4285714285716,"Reach":2181.0,"Eng_rate":1.352857142857143,"Posts":7},{"DoW":"Thursday","Views":4215.444444444444,"Reach":2867.5555555555557,"Eng_rate":1.5055555555555555,"Posts":9},{"DoW":"Friday","Views":14195.363636363636,"Reach":17528.636363636364,"Eng_rate":2.498181818181818,"Posts":11},{"DoW":"Saturday","Views":4125.428571428572,"Reach":2600.0,"Eng_rate":1.032857142857143,"Posts":7},{"DoW":"Sunday","Views":4905.625,"Reach":2969.375,"Eng_rate":1.1075000000000002,"Posts":8}],"hour_buckets":[{"HourBucket":"Night (0-5)","Views":3026.0,"Reach":2113.0,"Eng_rate":2.04,"Post ID":1},{"HourBucket":"Early (6-8)","Views":5655.826086956522,"Reach":4965.304347826087,"Eng_rate":1.9721739130434783,"Post ID":23},{"HourBucket":"Morn (9-11)","Views":6960.875,"Reach":6762.958333333333,"Eng_rate":1.4595833333333335,"Post ID":24},{"HourBucket":"Mid (12-14)","Views":1956.0,"Reach":1709.0,"Eng_rate":1.11,"Post ID":1},{"HourBucket":"Eve (18-20)","Views":10369.0,"Reach":11881.285714285714,"Eng_rate":1.8800000000000001,"Post ID":7},{"HourBucket":"Late (21-23)","Views":13068.5,"Reach":7851.0,"Eng_rate":2.755,"Post ID":2}],"all_posts":[{"Publish time":"2026-01-14 20:06","Post type":"IG carousel","Views":2784,"Reach":1368,"Likes":8,"Shares":1,"Saves":2,"Comments":0,"Follows":1,"Eng_rate":0.8,"Permalink":"https://www.instagram.com/p/DThG6DmkfFq/","Description":"Good conversations, shared cultures, and the right kind of energy \u2728\nA South Asian singles "},{"Publish time":"2026-01-16 19:30","Post type":"IG image","Views":3176,"Reach":1571,"Likes":7,"Shares":37,"Saves":3,"Comments":1,"Follows":2,"Eng_rate":3.06,"Permalink":"https://www.instagram.com/p/DTmMboZCLBr/","Description":"Offline is the new luxury \u2014 especially in dating.\nJoin our South Asian Singles Mixer in Va"},{"Publish time":"2026-01-18 09:22","Post type":"IG reel","Views":2619,"Reach":1728,"Likes":5,"Shares":8,"Saves":3,"Comments":0,"Follows":0,"Eng_rate":0.93,"Permalink":"https://www.instagram.com/reel/DTqQPHUD986/","Description":"Swipe fatigue? We get it.\nLet\u2019s try real life chemistry instead \ud83d\ude0c\nSouth Asian singles, put"},{"Publish time":"2026-01-21 09:09","Post type":"IG image","Views":4791,"Reach":2138,"Likes":4,"Shares":23,"Saves":0,"Comments":0,"Follows":2,"Eng_rate":1.26,"Permalink":"https://www.instagram.com/p/DTx9QBmDzBP/","Description":"Love might just be a conversation away \ud83d\udc95\u2728\n\nThis Valentine\u2019s, step out, dress up, and meet "},{"Publish time":"2026-01-21 12:20","Post type":"IG reel","Views":1956,"Reach":1709,"Likes":12,"Shares":4,"Saves":1,"Comments":2,"Follows":1,"Eng_rate":1.11,"Permalink":"https://www.instagram.com/reel/DTyS1Ngkf9O/","Description":"Wine Soir\u00e9e at Pizza Rustica \ud83c\udf77\n\nTomorrow | 6:00 PM | Ages 30\u201345\n\nJoin us for an intimate e"},{"Publish time":"2026-01-22 09:16","Post type":"IG carousel","Views":2865,"Reach":1550,"Likes":7,"Shares":0,"Saves":0,"Comments":0,"Follows":0,"Eng_rate":0.45,"Permalink":"https://www.instagram.com/p/DT0i652D22w/","Description":"Where conversations flow, laughter feels easy, and connections happen naturally \u2728\nCome for"},{"Publish time":"2026-01-24 07:13","Post type":"IG reel","Views":9081,"Reach":7154,"Likes":10,"Shares":47,"Saves":8,"Comments":0,"Follows":2,"Eng_rate":0.91,"Permalink":"https://www.instagram.com/reel/DT5eTysEYwz/","Description":"One night. No screens. Just chemistry. \u2728\nMeet people the way it was meant to happen \u2014 in p"},{"Publish time":"2026-01-24 07:15","Post type":"IG reel","Views":79,"Reach":68,"Likes":0,"Shares":0,"Saves":0,"Comments":0,"Follows":0,"Eng_rate":0.0,"Permalink":"https://www.instagram.com/reel/DT5efzokbwT/","Description":"One night. No screens. Just chemistry. \u2728\nMeet people the way it was meant to happen \u2014 in p"},{"Publish time":"2026-01-25 09:23","Post type":"IG image","Views":4830,"Reach":3113,"Likes":9,"Shares":26,"Saves":6,"Comments":0,"Follows":1,"Eng_rate":1.32,"Permalink":"https://www.instagram.com/p/DT8R-tej2Go/","Description":"Where you might meet the reason you delete the apps \u2728\nSalsa, sparks, and South Asian singl"},{"Publish time":"2026-01-27 08:10","Post type":"IG carousel","Views":3613,"Reach":1735,"Likes":20,"Shares":6,"Saves":2,"Comments":1,"Follows":1,"Eng_rate":1.67,"Permalink":"https://www.instagram.com/p/DUBTTMFD1H_/","Description":"Golden hour, good pours, and even better conversations. \ud83c\udf77\u2728\nAn evening where strangers clin"},{"Publish time":"2026-01-29 09:01","Post type":"IG reel","Views":2521,"Reach":1900,"Likes":6,"Shares":21,"Saves":4,"Comments":0,"Follows":1,"Eng_rate":1.63,"Permalink":"https://www.instagram.com/reel/DUGijwJjwxn/","Description":"Good conversations. Shared culture. The kind of night where numbers get exchanged before g"},{"Publish time":"2026-01-30 07:29","Post type":"IG image","Views":3195,"Reach":1552,"Likes":3,"Shares":13,"Saves":7,"Comments":0,"Follows":1,"Eng_rate":1.48,"Permalink":"https://www.instagram.com/p/DUI85GSiFrT/","Description":"Salsa steps, shared laughs, and sparks you didn\u2019t plan for. \ud83d\udc83\ud83c\udffd\u2728\nA night where South Asian "},{"Publish time":"2026-02-04 07:58","Post type":"IG carousel","Views":3516,"Reach":1582,"Likes":17,"Shares":4,"Saves":1,"Comments":1,"Follows":0,"Eng_rate":1.45,"Permalink":"https://www.instagram.com/p/DUV4UIGCBMD/","Description":"Skip the apps. Show up in person.\nChemistry works better offline. \u2728\nSouth Asian Singles Mi"},{"Publish time":"2026-02-06 09:28","Post type":"IG image","Views":3769,"Reach":1718,"Likes":3,"Shares":14,"Saves":1,"Comments":0,"Follows":2,"Eng_rate":1.05,"Permalink":"https://www.instagram.com/p/DUbMFksD-pM/","Description":"Toronto, get ready! The South Asian Social Mixer is taking over Pizza Rustica for a night "},{"Publish time":"2026-02-08 11:28","Post type":"IG carousel","Views":3063,"Reach":1424,"Likes":5,"Shares":8,"Saves":1,"Comments":2,"Follows":0,"Eng_rate":1.12,"Permalink":"https://www.instagram.com/p/DUgjc5ykwoc/","Description":"Calgary really showed up \u2728\nFrom first hellos to late-night laughs, the energy was unreal.\n"},{"Publish time":"2026-02-11 08:53","Post type":"IG reel","Views":2060,"Reach":1666,"Likes":9,"Shares":4,"Saves":2,"Comments":0,"Follows":0,"Eng_rate":0.9,"Permalink":"https://www.instagram.com/reel/DUoAERCjxkI/","Description":"We\u2019re hosting the first-ever South Asian single salsa mixer in Vancouver and Toronto this "},{"Publish time":"2026-02-13 09:29","Post type":"IG carousel","Views":3440,"Reach":1679,"Likes":10,"Shares":4,"Saves":6,"Comments":3,"Follows":0,"Eng_rate":1.37,"Permalink":"https://www.instagram.com/p/DUtN6HcD4H-/","Description":"Vancouver really understood the vibe \u2728\n\nFrom the first introductions to the last call at t"},{"Publish time":"2026-02-14 09:40","Post type":"IG carousel","Views":3590,"Reach":1520,"Likes":9,"Shares":5,"Saves":3,"Comments":1,"Follows":0,"Eng_rate":1.18,"Permalink":"https://www.instagram.com/p/DUvz8L3D1pT/","Description":"Edmonton\u2026 you weren\u2019t just a crowd, you were a whole vibe \u2728\nThe energy, the laughs, the co"},{"Publish time":"2026-02-16 09:31","Post type":"IG image","Views":3493,"Reach":1569,"Likes":5,"Shares":17,"Saves":8,"Comments":0,"Follows":1,"Eng_rate":1.91,"Permalink":"https://www.instagram.com/p/DU08Uruj53-/","Description":"For the ones who are done with situationships and ready for something real.\nAn evening of "},{"Publish time":"2026-02-17 10:47","Post type":"IG reel","Views":2273,"Reach":1612,"Likes":6,"Shares":11,"Saves":1,"Comments":1,"Follows":4,"Eng_rate":1.18,"Permalink":"https://www.instagram.com/reel/DU3pwWdkt89/","Description":"Dating apps had their chance \u263a\ufe0f\nIRL connections just hit different \nSouth Asian Social \u2728\n\n"},{"Publish time":"2026-02-19 07:30","Post type":"IG carousel","Views":2263,"Reach":1216,"Likes":3,"Shares":6,"Saves":2,"Comments":0,"Follows":0,"Eng_rate":0.9,"Permalink":"https://www.instagram.com/p/DU8dBTiEfxS/","Description":"Ottawa, it\u2019s your turn. \u2728\n\nSouth Asian Social Singles Mixer arrives in the capital \u2014 bring"},{"Publish time":"2026-02-21 08:29","Post type":"IG image","Views":3549,"Reach":2347,"Likes":5,"Shares":12,"Saves":3,"Comments":2,"Follows":0,"Eng_rate":0.94,"Permalink":"https://www.instagram.com/p/DVBtQWlj59b/","Description":"Edmonton, it\u2019s time to upgrade your love life \ud83d\udcbc\u2728\n\nMeet ambitious, like-minded South Asian "},{"Publish time":"2026-02-22 09:06","Post type":"IG reel","Views":9684,"Reach":6581,"Likes":8,"Shares":28,"Saves":5,"Comments":4,"Follows":15,"Eng_rate":0.68,"Permalink":"https://www.instagram.com/reel/DVEWR5-D4qw/","Description":"This isn\u2019t a dating app.\nIt\u2019s better. \u2728\n\n\ud83d\udc49 Come see what everyone\u2019s talking about\n\n#single"},{"Publish time":"2026-02-23 05:37","Post type":"IG reel","Views":3026,"Reach":2113,"Likes":19,"Shares":17,"Saves":3,"Comments":4,"Follows":0,"Eng_rate":2.04,"Permalink":"https://www.instagram.com/reel/DVGjKjBkW9J/","Description":"South Asian singles\u2026 but make it salsa \ud83d\udc83\ud83c\udffd\ud83d\udd25\n\nA little spice.\nA little rhythm.\nA lot of chem"},{"Publish time":"2026-02-26 07:52","Post type":"IG carousel","Views":3006,"Reach":1406,"Likes":12,"Shares":3,"Saves":1,"Comments":1,"Follows":0,"Eng_rate":1.21,"Permalink":"https://www.instagram.com/p/DVOhDdpERRJ/","Description":"South Asian singles stepped in\u2026\nSalsa dancers walked out \ud83d\udc83\ud83c\udffd\ud83d\udd25\n\nFast feet.\nSlow burns.\nInsta"},{"Publish time":"2026-02-27 06:17","Post type":"IG image","Views":2709,"Reach":1309,"Likes":5,"Shares":5,"Saves":3,"Comments":1,"Follows":0,"Eng_rate":1.07,"Permalink":"https://www.instagram.com/p/DVQ64sZESRW/","Description":"Toronto, are you ready to celebrate Holi a little differently this year? \ud83c\udf08\u2728\n\nNo family? No"},{"Publish time":"2026-02-27 06:23","Post type":"IG reel","Views":38,"Reach":36,"Likes":1,"Shares":0,"Saves":0,"Comments":1,"Follows":0,"Eng_rate":5.56,"Permalink":"https://www.instagram.com/reel/DVQ7nYgEQCl/","Description":"\u201cShe\u2019s not on the apps.\u201d\n\u201cHe doesn\u2019t ghost.\u201d\n\u201cSo where did you meet?\u201d\n\nAt a South Asian So"},{"Publish time":"2026-03-01 07:00","Post type":"IG carousel","Views":3870,"Reach":1857,"Likes":12,"Shares":10,"Saves":5,"Comments":0,"Follows":0,"Eng_rate":1.45,"Permalink":"https://www.instagram.com/p/DVWJfPGkbD9/","Description":"Delete the apps.\nPut on a good outfit.\nMeet someone who actually shows up.\n\nSouth Asian So"},{"Publish time":"2026-03-02 07:43","Post type":"IG reel","Views":7199,"Reach":11330,"Likes":16,"Shares":17,"Saves":3,"Comments":3,"Follows":13,"Eng_rate":0.34,"Permalink":"https://www.instagram.com/reel/DVYzCKfEawG/","Description":"What if your next relationship didn\u2019t start with a swipe\u2026 but a hello? \ud83d\udc40\nReal conversation"},{"Publish time":"2026-03-02 08:41","Post type":"IG reel","Views":14,"Reach":12,"Likes":0,"Shares":0,"Saves":0,"Comments":1,"Follows":0,"Eng_rate":8.33,"Permalink":"https://www.instagram.com/reel/DVY5s8jj-y8/","Description":"What if your next relationship didn\u2019t start with a swipe\u2026 but a hello? \ud83d\udc40\nReal conversation"},{"Publish time":"2026-03-03 08:54","Post type":"IG image","Views":2335,"Reach":1364,"Likes":4,"Shares":2,"Saves":5,"Comments":1,"Follows":0,"Eng_rate":0.88,"Permalink":"https://www.instagram.com/p/DVbf3UUDyck/","Description":"First time in Ottawa. First mixer of the season. Let\u2019s make it unforgettable. \u2728\n\nOttawa, w"},{"Publish time":"2026-03-04 08:34","Post type":"IG image","Views":6075,"Reach":3381,"Likes":6,"Shares":71,"Saves":15,"Comments":1,"Follows":7,"Eng_rate":2.75,"Permalink":"https://www.instagram.com/p/DVeCfqdj4T1/","Description":"You\u2019ve built the career.\nNow let\u2019s build the connection. \ud83e\udd0d\n\nSouth Asian Singles Profession"},{"Publish time":"2026-03-06 11:03","Post type":"IG carousel","Views":3655,"Reach":1803,"Likes":11,"Shares":8,"Saves":3,"Comments":2,"Follows":1,"Eng_rate":1.33,"Permalink":"https://www.instagram.com/p/DVjdWI_jwLu/","Description":"Real people.\nReal conversations.\nReal chemistry. \u2728\n\nInside our Calgary South Asian Singles"},{"Publish time":"2026-03-06 19:36","Post type":"IG image","Views":8382,"Reach":32436,"Likes":25,"Shares":242,"Saves":34,"Comments":3,"Follows":39,"Eng_rate":0.94,"Permalink":"https://www.instagram.com/p/DVkX2hNkZyB/","Description":"Dating apps getting exhausting?\nMaybe it\u2019s time to meet someone face-to-face.\n\nJoin us at "},{"Publish time":"2026-03-08 09:38","Post type":"IG carousel","Views":3219,"Reach":1735,"Likes":9,"Shares":5,"Saves":0,"Comments":2,"Follows":0,"Eng_rate":0.92,"Permalink":"https://www.instagram.com/p/DVoWVp7j3XY/","Description":"What happens when South Asian singles meet in real life instead of on apps? \ud83d\udc40\n\nGreat conve"},{"Publish time":"2026-03-09 09:06","Post type":"IG reel","Views":2467,"Reach":2155,"Likes":13,"Shares":12,"Saves":0,"Comments":3,"Follows":0,"Eng_rate":1.3,"Permalink":"https://www.instagram.com/reel/DVq3NCcEXHb/","Description":"Jash & Aradita met at our Toronto mixer in June 2025 \u2014 and now they\u2019re getting married! \ud83d\udc8d\n"},{"Publish time":"2026-03-10 09:38","Post type":"IG carousel","Views":2303,"Reach":1258,"Likes":5,"Shares":1,"Saves":0,"Comments":3,"Follows":0,"Eng_rate":0.72,"Permalink":"https://www.instagram.com/p/DVtf3TeE5GH/","Description":"NEW YORK, THIS ONE\u2019S FOR YOU. \ud83d\uddfd\u2728\n\nSouth Asian Socials is officially coming to NYC, and we\u2019"},{"Publish time":"2026-03-10 21:10","Post type":"IG image","Views":18896,"Reach":12279,"Likes":28,"Shares":445,"Saves":53,"Comments":3,"Follows":57,"Eng_rate":4.31,"Permalink":"https://www.instagram.com/p/DVuuqaBE5Qr/","Description":"New York\u2026 it\u2019s happening. \ud83d\uddfd\u2728\nOur first South Asian Singles Mixer in NYC is finally here.\nA"},{"Publish time":"2026-03-12 10:06","Post type":"IG reel","Views":3438,"Reach":2424,"Likes":7,"Shares":12,"Saves":5,"Comments":0,"Follows":1,"Eng_rate":0.99,"Permalink":"https://www.instagram.com/reel/DVysny0D2-0/","Description":"Good conversations, great energy, and a room full of amazing South Asians. \u2728\n\nThis is what"},{"Publish time":"2026-03-14 07:56","Post type":"IG carousel","Views":4441,"Reach":2060,"Likes":13,"Shares":8,"Saves":0,"Comments":0,"Follows":2,"Eng_rate":1.02,"Permalink":"https://www.instagram.com/p/DV3nc5lkVi1/","Description":"Proof that the best connections don\u2019t start with a swipe\u2026 they start with a conversation.\n"},{"Publish time":"2026-03-16 07:30","Post type":"IG image","Views":39690,"Reach":51319,"Likes":56,"Shares":2342,"Saves":120,"Comments":38,"Follows":95,"Eng_rate":4.98,"Permalink":"https://www.instagram.com/p/DV8uBOKEb-r/","Description":"Born & raised in Canada, but still love a little South Asian vibe?\n\nJoin us for a South As"},{"Publish time":"2026-03-17 09:34","Post type":"IG reel","Views":2845,"Reach":2470,"Likes":2,"Shares":11,"Saves":1,"Comments":0,"Follows":1,"Eng_rate":0.57,"Permalink":"https://www.instagram.com/reel/DV_g73zkdJ3/","Description":"You missed this one\u2026 but just look at the energy \ud83d\ude2e\u200d\ud83d\udd25\nGood conversations, real connections,"},{"Publish time":"2026-03-19 08:56","Post type":"IG carousel","Views":3929,"Reach":2350,"Likes":6,"Shares":2,"Saves":0,"Comments":0,"Follows":0,"Eng_rate":0.34,"Permalink":"https://www.instagram.com/p/DWEmRqakdBm/","Description":"Real people.\nReal conversations.\nReal chemistry. \u2728\nInside our Calgary South Asian Singles "},{"Publish time":"2026-03-20 18:08","Post type":"IG image","Views":44788,"Reach":40267,"Likes":92,"Shares":1170,"Saves":138,"Comments":18,"Follows":156,"Eng_rate":3.52,"Permalink":"https://www.instagram.com/p/DWIKAniEfAs/","Description":"NYC, this one\u2019s for the serious singles. \u2728\n\nJoin us for a South Asian Singles Mixer for Ma"},{"Publish time":"2026-03-21 09:10","Post type":"IG reel","Views":4383,"Reach":3365,"Likes":12,"Shares":17,"Saves":9,"Comments":5,"Follows":2,"Eng_rate":1.28,"Permalink":"https://www.instagram.com/reel/DWJxTdqEVKS/","Description":"You sign up.\nPick your age range.\nChoose your vibe \u2014 Singles Mixer, Salsa Night, or Social"},{"Publish time":"2026-03-24 20:30","Post type":"IG image","Views":3070,"Reach":1990,"Likes":2,"Shares":4,"Saves":3,"Comments":0,"Follows":0,"Eng_rate":0.45,"Permalink":"https://www.instagram.com/p/DWStiuoEUN8/","Description":"Good wine, great vibes, and even better company \ud83c\udf77\u2728\n\nJoin us for a night where conversation"},{"Publish time":"2026-03-25 21:07","Post type":"IG carousel","Views":7241,"Reach":3423,"Likes":9,"Shares":28,"Saves":3,"Comments":1,"Follows":1,"Eng_rate":1.2,"Permalink":"https://www.instagram.com/p/DWVWsNLke8e/","Description":"Still thinking about this night\u2026 \u2728\n\nThe laughs, the energy, the \u201cwait, how did we just cli"},{"Publish time":"2026-03-26 08:00","Post type":"IG image","Views":7483,"Reach":5381,"Likes":17,"Shares":179,"Saves":23,"Comments":0,"Follows":9,"Eng_rate":4.07,"Permalink":"https://www.instagram.com/p/DWWhYd0kYpc/","Description":"Bringing together ambition, culture, and chemistry \ud83d\udcab\n\nJoin us for an afternoon of meaningf"},{"Publish time":"2026-03-27 09:37","Post type":"IG image","Views":79232,"Reach":107223,"Likes":212,"Shares":7363,"Saves":308,"Comments":36,"Follows":135,"Eng_rate":7.39,"Permalink":"https://www.instagram.com/p/DWZRLYOkRpF/","Description":"Toronto\u2026 you did your thing \ud83d\udc40\u2728\n\nOur last mixer SOLD OUT before it even happened \u2014 so we ha"},{"Publish time":"2026-03-29 08:31","Post type":"IG reel","Views":4258,"Reach":3840,"Likes":4,"Shares":16,"Saves":2,"Comments":0,"Follows":3,"Eng_rate":0.57,"Permalink":"https://www.instagram.com/reel/DWeTLXEEQdq/","Description":"Not your parents\u2019 rishta setup \ud83d\ude0c\n\nJust good music, better people, and maybe\u2026 something mor"},{"Publish time":"2026-03-30 08:48","Post type":"IG image","Views":13869,"Reach":8453,"Likes":15,"Shares":231,"Saves":36,"Comments":1,"Follows":26,"Eng_rate":3.35,"Permalink":"https://www.instagram.com/p/DWg54UKkR0V/","Description":"Ready to meet someone who\u2019s on the same page as you? \ud83d\udcab\n\nJoin us for an evening of meaningf"},{"Publish time":"2026-04-02 10:58","Post type":"IG reel","Views":9753,"Reach":7521,"Likes":35,"Shares":60,"Saves":12,"Comments":1,"Follows":64,"Eng_rate":1.44,"Permalink":"https://www.instagram.com/reel/DWo3IsQj0s9/","Description":"Are you still waiting for someone to introduce you?\nThe room is full. The vibes are real.\n"},{"Publish time":"2026-04-03 10:48","Post type":"IG reel","Views":3765,"Reach":3221,"Likes":9,"Shares":8,"Saves":5,"Comments":1,"Follows":1,"Eng_rate":0.71,"Permalink":"https://www.instagram.com/reel/DWra4iHD5kx/","Description":"Still waiting for someone to introduce you?\nYeah\u2026 we don\u2019t do that here \ud83d\ude09\nWalk into a room"},{"Publish time":"2026-04-05 19:37","Post type":"IG carousel","Views":7702,"Reach":3477,"Likes":26,"Shares":29,"Saves":10,"Comments":0,"Follows":2,"Eng_rate":1.87,"Permalink":"https://www.instagram.com/p/DWxhKrdE-Xa/","Description":"Still thinking about coming? This is your sign \u2728\n\nA room full of South Asians, real conver"},{"Publish time":"2026-04-07 06:02","Post type":"IG reel","Views":3812,"Reach":2784,"Likes":15,"Shares":13,"Saves":3,"Comments":2,"Follows":1,"Eng_rate":1.19,"Permalink":"https://www.instagram.com/reel/DW1M0w2EXtL/","Description":"Everyone\u2019s talking about it\u2026 \ud83d\udc40\nThe vibes. The people. The connections.\nAnd this is just a "},{"Publish time":"2026-04-09 19:43","Post type":"IG reel","Views":2681,"Reach":2060,"Likes":11,"Shares":28,"Saves":13,"Comments":0,"Follows":1,"Eng_rate":2.52,"Permalink":"https://www.instagram.com/reel/DW70wRfkfhc/","Description":"Still waiting for your \u201chow did you two meet?\u201d moment? \ud83d\udc40\nYeah\u2026 same.\nBut not for long \ud83d\ude09\nSo"},{"Publish time":"2026-04-11 09:53","Post type":"IG carousel","Views":3755,"Reach":1686,"Likes":13,"Shares":11,"Saves":7,"Comments":1,"Follows":2,"Eng_rate":1.9,"Permalink":"https://www.instagram.com/p/DW_7CPWD3uF/","Description":"No more \u201cbring your single friend\u201d excuses \ud83d\ude09\nWe are the place where South Asians actually "},{"Publish time":"2026-04-13 10:00","Post type":"IG reel","Views":1308,"Reach":918,"Likes":5,"Shares":15,"Saves":1,"Comments":1,"Follows":1,"Eng_rate":2.4,"Permalink":"https://www.instagram.com/reel/DXFFKeRjwnQ/","Description":"The smiles, the energy, the \u201cwait, how did we just vibe like that?\u201d moments\u2026 this is what "}]};
+
+const fmt = n => {
+  if (n === null || n === undefined) return '—';
+  n = Number(n);
+  if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+  if (n >= 1e3) return (n/1e3).toFixed(n >= 1e4 ? 0 : 1)+'k';
+  return n.toLocaleString();
+};
+const fmtExact = n => Number(n).toLocaleString();
+
+// Headline KPIs
+const T = DATA.totals;
+document.getElementById('k-views').textContent = fmt(T.views);
+document.getElementById('k-views-sub').textContent = fmtExact(T.views) + ' total';
+document.getElementById('k-reach').textContent = fmt(T.reach);
+document.getElementById('k-reach-sub').textContent = fmtExact(T.reach) + ' unique accounts';
+document.getElementById('k-shares').textContent = fmt(T.shares);
+document.getElementById('k-saves').textContent = fmt(T.saves);
+document.getElementById('k-likes').textContent = fmt(T.likes);
+document.getElementById('k-comments').textContent = fmt(T.comments);
+document.getElementById('k-follows').textContent = fmt(T.follows);
+document.getElementById('k-eng').textContent = T.avg_eng_rate + '%';
+
+// Headline
+const bestType = Object.entries(DATA.bytype_summary).sort((a,b)=>b[1].avg_views-a[1].avg_views)[0];
+document.getElementById('headline').innerHTML =
+  `<strong>${bestType[0]}s</strong> are the breakout format — averaging <strong>${fmt(bestType[1].avg_views)}</strong> views and <strong>${bestType[1].avg_follows.toFixed(1)}</strong> new follows per post, vs. carousel's ${DATA.bytype_summary['IG carousel'].avg_follows.toFixed(1)}. `+
+  `<strong>Shares (${fmt(T.shares)})</strong> dwarf likes (${fmt(T.likes)}) — this audience propagates content rather than engaging in-feed. `+
+  `A single image on <strong>Mar 27</strong> drove <strong>${fmt(DATA.top_posts[0].Views)}</strong> views and <strong>${DATA.top_posts[0].Follows}</strong> follows on its own.`;
+
+// Type cards
+const typeColors = {'IG image': 'var(--blue)', 'IG reel': 'var(--purple)', 'IG carousel': 'var(--pink)'};
+const typePillClass = {'IG image': 'pill-image', 'IG reel': 'pill-reel', 'IG carousel': 'pill-carousel'};
+const typeGrid = document.getElementById('type-grid');
+['IG image','IG reel','IG carousel'].forEach(t => {
+  const d = DATA.bytype_summary[t];
+  typeGrid.insertAdjacentHTML('beforeend', `
+    <div class="type-card">
+      <div class="type-title"><span class="type-dot" style="background:${typeColors[t]}"></span>${t} — ${d.count} posts</div>
+      <div class="big-num" style="color:${typeColors[t]}">${fmt(d.avg_views)}<span style="font-size:12px;color:var(--text-muted);font-weight:400"> avg views</span></div>
+      <div style="font-size:11px;color:var(--text-muted)">Reach avg: ${fmt(d.avg_reach)} · Eng rate ${d.avg_eng_rate}%</div>
+      <div class="type-metrics">
+        <div class="type-metric"><div class="mlabel">Avg shares</div><div class="mval">${d.avg_shares}</div></div>
+        <div class="type-metric"><div class="mlabel">Avg saves</div><div class="mval">${d.avg_saves}</div></div>
+        <div class="type-metric"><div class="mlabel">Avg follows</div><div class="mval" style="color:var(--green)">${d.avg_follows}</div></div>
+        <div class="type-metric"><div class="mlabel">Total follows</div><div class="mval">${d.total_follows}</div></div>
+      </div>
+    </div>`);
+});
+
+// Chart defaults
+Chart.defaults.color = '#888';
+Chart.defaults.borderColor = '#2A2A2A';
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, Inter, sans-serif";
+
+// Sort weekly by actual date
+const weekParse = w => new Date(w + ' 2026').getTime();
+const weekly = [...DATA.weekly].sort((a,b)=>weekParse(a.Week)-weekParse(b.Week));
+
+// Weekly chart
+new Chart(document.getElementById('weeklyChart'), {
+  type: 'line',
+  data: {
+    labels: weekly.map(w=>w.Week),
+    datasets: [
+      {label:'Views', data: weekly.map(w=>w.Views), borderColor:'#60A5FA', backgroundColor:'rgba(96,165,250,0.1)', tension:0.3, fill:true, pointRadius:3},
+      {label:'Reach', data: weekly.map(w=>w.Reach), borderColor:'#A78BFA', backgroundColor:'rgba(167,139,250,0.08)', tension:0.3, fill:false, pointRadius:3}
+    ]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{labels:{boxWidth:10, font:{size:11}}}},
+    scales:{
+      y:{ticks:{callback:v=>fmt(v), font:{size:10}}, grid:{color:'#1F1F1F'}},
+      x:{ticks:{font:{size:10}}, grid:{color:'#1F1F1F'}}
+    }
+  }
+});
+
+new Chart(document.getElementById('weeklyShareChart'), {
+  type:'bar',
+  data:{
+    labels: weekly.map(w=>w.Week),
+    datasets:[
+      {label:'Shares', data: weekly.map(w=>w.Shares), backgroundColor:'rgba(34,211,238,0.7)', yAxisID:'y'},
+      {label:'Follows', type:'line', data: weekly.map(w=>w.Follows), borderColor:'#22C55E', backgroundColor:'#22C55E', tension:0.3, yAxisID:'y1', pointRadius:3}
+    ]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{labels:{boxWidth:10, font:{size:11}}}},
+    scales:{
+      y:{position:'left', ticks:{callback:v=>fmt(v), font:{size:10}}, grid:{color:'#1F1F1F'}, title:{display:true,text:'Shares',color:'#666',font:{size:10}}},
+      y1:{position:'right', ticks:{font:{size:10}}, grid:{drawOnChartArea:false}, title:{display:true,text:'Follows',color:'#666',font:{size:10}}},
+      x:{ticks:{font:{size:10}}, grid:{color:'#1F1F1F'}}
+    }
+  }
+});
+
+// DoW chart
+new Chart(document.getElementById('dowChart'), {
+  type:'bar',
+  data:{
+    labels: DATA.dow.map(d=>d.DoW.slice(0,3)),
+    datasets:[
+      {label:'Avg views', data: DATA.dow.map(d=>Math.round(d.Views)), backgroundColor:'rgba(96,165,250,0.75)'},
+      {label:'Avg eng %', data: DATA.dow.map(d=>+d.Eng_rate.toFixed(2)), backgroundColor:'rgba(167,139,250,0.75)', yAxisID:'y1'}
+    ]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{labels:{boxWidth:10, font:{size:11}}}},
+    scales:{
+      y:{position:'left', ticks:{callback:v=>fmt(v), font:{size:10}}, grid:{color:'#1F1F1F'}, title:{display:true,text:'Avg views',color:'#666',font:{size:10}}},
+      y1:{position:'right', ticks:{callback:v=>v+'%', font:{size:10}}, grid:{drawOnChartArea:false}, title:{display:true,text:'Eng %',color:'#666',font:{size:10}}},
+      x:{ticks:{font:{size:10}}, grid:{color:'#1F1F1F'}}
+    }
+  }
+});
+
+// Hour chart
+new Chart(document.getElementById('hourChart'), {
+  type:'bar',
+  data:{
+    labels: DATA.hour_buckets.map(h=>h.HourBucket),
+    datasets:[
+      {label:'Avg views', data: DATA.hour_buckets.map(h=>Math.round(h.Views)), backgroundColor:'rgba(34,211,238,0.7)'},
+      {label:'Avg eng %', data: DATA.hour_buckets.map(h=>+h.Eng_rate.toFixed(2)), backgroundColor:'rgba(236,72,153,0.7)', yAxisID:'y1'}
+    ]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{labels:{boxWidth:10, font:{size:11}}}},
+    scales:{
+      y:{position:'left', ticks:{callback:v=>fmt(v), font:{size:10}}, grid:{color:'#1F1F1F'}, title:{display:true,text:'Avg views',color:'#666',font:{size:10}}},
+      y1:{position:'right', ticks:{callback:v=>v+'%', font:{size:10}}, grid:{drawOnChartArea:false}, title:{display:true,text:'Eng %',color:'#666',font:{size:10}}},
+      x:{ticks:{font:{size:9}}, grid:{color:'#1F1F1F'}}
+    }
+  }
+});
+
+// Top posts table
+function renderPostRow(p) {
+  const pill = typePillClass[p['Post type']] || '';
+  const shortDate = p['Publish time'].slice(0,10);
+  const desc = (p.Description||'').replace(/\n/g,' ');
+  return `<tr onclick="window.open('${p.Permalink}','_blank')" style="cursor:pointer">
+    <td style="white-space:nowrap">${shortDate}</td>
+    <td><span class="pill ${pill}">${p['Post type'].replace('IG ','')}</span></td>
+    <td class="desc-cell" title="${desc.replace(/"/g,'&quot;')}">${desc.slice(0,80)}</td>
+    <td class="num"><strong>${fmt(p.Views)}</strong></td>
+    <td class="num">${fmt(p.Reach)}</td>
+    <td class="num" style="color:var(--cyan)">${fmt(p.Shares)}</td>
+    <td class="num" style="color:var(--amber)">${fmt(p.Saves)}</td>
+    <td class="num" style="color:var(--green)">${p.Follows}</td>
+    <td class="num">${(+p.Eng_rate).toFixed(2)}</td>
+  </tr>`;
+}
+document.getElementById('top-posts-body').innerHTML = DATA.top_posts.map(renderPostRow).join('');
+
+// All posts with filter/sort/search
+function renderAllPosts() {
+  const type = document.getElementById('f-type').value;
+  const sort = document.getElementById('f-sort').value;
+  const q = document.getElementById('f-search').value.trim().toLowerCase();
+  let posts = [...DATA.all_posts];
+  if (type) posts = posts.filter(p=>p['Post type']===type);
+  if (q) posts = posts.filter(p=>(p.Description||'').toLowerCase().includes(q));
+  const sorters = {
+    date_desc: (a,b)=>b['Publish time'].localeCompare(a['Publish time']),
+    date_asc: (a,b)=>a['Publish time'].localeCompare(b['Publish time']),
+    views: (a,b)=>b.Views-a.Views,
+    reach: (a,b)=>b.Reach-a.Reach,
+    shares: (a,b)=>b.Shares-a.Shares,
+    follows: (a,b)=>b.Follows-a.Follows,
+    eng: (a,b)=>b.Eng_rate-a.Eng_rate,
+  };
+  posts.sort(sorters[sort]);
+  document.getElementById('all-posts-body').innerHTML = posts.map(renderPostRow).join('');
+  document.getElementById('all-count').textContent = posts.length + ' of ' + DATA.all_posts.length + ' posts';
+}
+document.getElementById('f-type').addEventListener('change', renderAllPosts);
+document.getElementById('f-sort').addEventListener('change', renderAllPosts);
+document.getElementById('f-search').addEventListener('input', renderAllPosts);
+renderAllPosts();
+
+// Insights
+const topDow = [...DATA.dow].sort((a,b)=>b.Views-a.Views)[0];
+const topHour = [...DATA.hour_buckets].sort((a,b)=>b.Eng_rate-a.Eng_rate)[0];
+const shareToLike = (T.shares/T.likes).toFixed(1);
+const best = DATA.top_posts[0];
+const viewsFromBest = ((best.Views/T.views)*100).toFixed(0);
+const reachFromBest = ((best.Reach/T.reach)*100).toFixed(0);
+
+const insights = [
+  {label:'Share-to-like ratio', val: shareToLike + '×', sub: `Shares (${fmt(T.shares)}) outpace likes (${fmt(T.likes)}) by ${shareToLike}×. Audience forwards content to friends far more than they tap ❤️ — treat shares as the north-star engagement metric.`},
+  {label:'Best format for follows', val: 'IG image', sub: `IG images drive ${DATA.bytype_summary['IG image'].avg_follows.toFixed(1)} follows/post vs. ${DATA.bytype_summary['IG reel'].avg_follows.toFixed(1)} for reels and ${DATA.bytype_summary['IG carousel'].avg_follows.toFixed(1)} for carousels. Carousels are barely acquiring followers.`},
+  {label:'Best day to post', val: topDow.DoW, sub: `${topDow.DoW} posts avg ${fmt(topDow.Views)} views and ${topDow.Eng_rate.toFixed(2)}% engagement. Monday is close behind on engagement %. Saturday/Sunday are the weakest.`},
+  {label:'Best window', val: topHour.HourBucket, sub: `Highest engagement rate bucket at ${topHour.Eng_rate.toFixed(2)}%. Current cadence is heavily skewed to 7–11am — testing more evening slots could lift performance.`},
+  {label:'Concentration risk', val: viewsFromBest + '% of views', sub: `The Mar 27 Toronto post alone delivered ${viewsFromBest}% of all views and ${reachFromBest}% of all reach in 3 months. Growth is event-driven, not baseline.`},
+  {label:'Carousel ROI', val: 'Rethink', sub: `18 carousels generated just ${DATA.bytype_summary['IG carousel'].total_follows} follows combined. Either retire the format for acquisition or repurpose it for retention/recap content after events.`},
+];
+document.getElementById('insights-grid').innerHTML = insights.map(i=>`
+  <div class="insight">
+    <div class="ins-label">${i.label}</div>
+    <div class="ins-val">${i.val}</div>
+    <div class="ins-sub">${i.sub}</div>
+  </div>`).join('');
+
+// ── Live fetch from Instagram Graph API via local proxy ──
+async function fetchLive() {
+  const btn = document.getElementById('fetch-live-btn');
+  const sub = document.getElementById('ig-subtitle');
+  const orig = btn.textContent;
+  btn.textContent = '⟳ Fetching...'; btn.disabled = true;
+  try {
+    // Default to same host; override with ?api=http://localhost:3001 if embedding elsewhere
+    const apiBase = new URL(location.href).searchParams.get('api') || ('http://localhost:3001');
+    const days = 90;
+    const r = await fetch(`${apiBase}/api/ig/posts?days=${days}&fresh=1`);
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Fetch failed');
+
+    // Reshape live response to the dashboard's DATA schema
+    const live = {
+      totals: {
+        posts: d.posts.length,
+        views: d.totals.views,
+        reach: d.totals.reach,
+        likes: d.totals.likes,
+        shares: d.totals.shares,
+        saves: d.totals.saves,
+        comments: d.totals.comments,
+        follows: 0, // per-post follows not available in Graph API — see note below
+        avg_eng_rate: +(d.posts.reduce((s,p)=>s + (p.reach ? ((p.likes+p.comments+p.saves+p.shares)/p.reach*100) : 0), 0) / Math.max(d.posts.length,1)).toFixed(2),
+        date_start: d.posts.length ? new Date(d.posts[d.posts.length-1].timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '',
+        date_end: d.posts.length ? new Date(d.posts[0].timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '',
+      },
+      bytype_summary: {},
+      weekly: [],
+      all_posts: d.posts.map(p => ({
+        'Publish time': new Date(p.timestamp).toISOString().replace('T',' ').slice(0,16),
+        'Post type': p.type,
+        Views: p.views, Reach: p.reach, Likes: p.likes, Shares: p.shares,
+        Saves: p.saves, Comments: p.comments, Follows: 0,
+        Eng_rate: p.reach ? +(((p.likes+p.comments+p.saves+p.shares)/p.reach)*100).toFixed(2) : 0,
+        Permalink: p.permalink,
+        Description: (p.caption || '').slice(0, 90),
+      })),
+      top_posts: [],
+      dow: [], hour_buckets: [],
+    };
+
+    // Simple alert — for a full re-render we'd reload the page with new data
+    sub.innerHTML = `@southasiansocials · ${live.totals.date_start} – ${live.totals.date_end} · ${live.totals.posts} posts <span style="color:var(--green)">● live</span>`;
+    document.getElementById('k-views').textContent = (v => v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'k':v)(live.totals.views);
+    document.getElementById('k-reach').textContent = (v => v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'k':v)(live.totals.reach);
+    document.getElementById('k-shares').textContent = (v => v>=1e3?(v/1e3).toFixed(1)+'k':v)(live.totals.shares);
+    document.getElementById('k-saves').textContent = live.totals.saves;
+    document.getElementById('k-likes').textContent = live.totals.likes;
+    document.getElementById('k-comments').textContent = live.totals.comments;
+
+    btn.textContent = '✓ Live';
+    btn.style.background = 'rgba(34,197,94,0.15)';
+    btn.style.color = 'var(--green)';
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; btn.style.background=''; btn.style.color=''; }, 2500);
+    console.log('Live IG data:', live);
+  } catch (e) {
+    console.error(e);
+    btn.textContent = '✗ ' + (e.message.length > 30 ? 'Failed' : e.message);
+    btn.style.background = 'rgba(239,68,68,0.15)';
+    btn.style.color = 'var(--red)';
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; btn.style.background=''; btn.style.color=''; }, 4000);
+  }
+}
+</script>
+</body>
+</html>

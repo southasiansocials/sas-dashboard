@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>IG Live — South Asian Socials</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0C0C0C;
+  --bg-card: #141414;
+  --bg-elevated: #1A1A1A;
+  --bg-input: #111111;
+  --border: #2A2A2A;
+  --border-focus: #444;
+  --text: #F0F0F0;
+  --text-muted: #888;
+  --text-dim: #555;
+  --accent: #FFFFFF;
+  --green: #22C55E;
+  --red: #EF4444;
+  --amber: #F59E0B;
+  --blue: #60A5FA;
+  --purple: #A78BFA;
+  --pink: #EC4899;
+  --cyan: #22D3EE;
+  --radius: 8px;
+  --radius-sm: 5px;
+  --radius-pill: 99px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  padding: 1.5rem 1.75rem 4rem;
+  max-width: 1400px; margin: 0 auto;
+}
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.top-bar {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; flex-wrap: wrap;
+  gap: 14px; margin-bottom: 1.75rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.top-bar h1 {
+  font-size: 18px; font-weight: 600;
+  color: var(--accent); letter-spacing: -0.4px;
+  display: flex; align-items: center; gap: 10px;
+}
+.live-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 0 rgba(34,197,94,0.6);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.6); }
+  70% { box-shadow: 0 0 0 10px rgba(34,197,94,0); }
+  100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+}
+.live-dot.stale { background: var(--amber); animation: none; }
+.live-dot.err { background: var(--red); animation: none; }
+.top-bar .subtitle {
+  font-size: 12px; color: var(--text-muted);
+  margin-top: 4px;
+}
+.nav-links { display: flex; gap: 6px; flex-wrap: wrap; }
+.nav-link {
+  font-size: 12px; padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  transition: all 0.12s; cursor: pointer;
+}
+.nav-link:hover { border-color: var(--border-focus); color: var(--text); text-decoration: none; }
+.nav-link.active {
+  background: var(--accent); color: #000;
+  border-color: var(--accent); font-weight: 600;
+}
+.nav-link.primary {
+  background: var(--blue); color: #000;
+  border-color: var(--blue); font-weight: 600;
+}
+.nav-link.primary:hover { background: #7ab4fc; }
+.nav-link:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.controls {
+  display: flex; gap: 8px; align-items: center;
+  flex-wrap: wrap; margin-bottom: 1.25rem;
+}
+.controls label {
+  font-size: 11px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin-right: 4px;
+}
+select {
+  font-size: 12px; padding: 7px 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text); outline: none;
+}
+
+/* Stat cards */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px; margin-bottom: 1.5rem;
+}
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  transition: border-color 0.15s;
+}
+.stat-card:hover { border-color: #333; }
+.stat-card .label {
+  font-size: 10px; color: var(--text-muted);
+  margin-bottom: 8px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.07em;
+}
+.stat-card .value {
+  font-size: 22px; font-weight: 700;
+  color: var(--text); letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+.stat-card .sub {
+  font-size: 11px; color: var(--text-muted); margin-top: 4px;
+}
+.stat-card .value.green { color: var(--green); }
+.stat-card .value.blue { color: var(--blue); }
+.stat-card .value.purple { color: var(--purple); }
+.stat-card .value.pink { color: var(--pink); }
+.stat-card .value.amber { color: var(--amber); }
+.stat-card .value.cyan { color: var(--cyan); }
+
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px; margin-top: 1.75rem;
+}
+.section-header h2 {
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.1em;
+}
+.section-header .hint {
+  font-size: 11px; color: var(--text-dim);
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 900px) {
+  .two-col { grid-template-columns: 1fr; }
+}
+
+.panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+.panel h3 {
+  font-size: 13px; font-weight: 600;
+  color: var(--text); margin-bottom: 4px;
+}
+.panel .panel-sub {
+  font-size: 11px; color: var(--text-muted);
+  margin-bottom: 16px;
+}
+.chart-wrap {
+  position: relative; height: 260px;
+}
+
+.type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 1.5rem;
+}
+.type-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+.type-card .type-title {
+  font-size: 11px; color: var(--text-muted);
+  font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.1em; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.type-dot { width: 8px; height: 8px; border-radius: 50%; }
+.type-card .big-num {
+  font-size: 20px; font-weight: 700;
+  letter-spacing: -0.5px; margin-bottom: 4px;
+}
+.type-metrics {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin-top: 12px;
+  padding-top: 12px; border-top: 1px solid var(--border);
+}
+.type-metric .mlabel {
+  font-size: 10px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.type-metric .mval {
+  font-size: 14px; font-weight: 600;
+  margin-top: 2px;
+}
+@media (max-width: 900px) { .type-grid { grid-template-columns: 1fr; } }
+
+.posts-table {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+table {
+  width: 100%; border-collapse: collapse;
+  font-size: 12px;
+}
+th {
+  text-align: left; padding: 11px 14px;
+  color: var(--text-muted); font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  font-size: 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+  position: sticky; top: 0;
+}
+th.num { text-align: right; }
+td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  vertical-align: middle;
+}
+td.num { text-align: right; }
+tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: rgba(255,255,255,0.02); }
+.pill {
+  display: inline-block; padding: 2px 8px;
+  font-size: 10px; border-radius: var(--radius-pill);
+  font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.pill-image { background: rgba(96,165,250,0.15); color: var(--blue); }
+.pill-reel { background: rgba(167,139,250,0.15); color: var(--purple); }
+.pill-carousel { background: rgba(236,72,153,0.15); color: var(--pink); }
+.desc-cell {
+  max-width: 280px;
+  overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; color: var(--text-muted);
+}
+.thumb {
+  width: 44px; height: 44px; object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+}
+.scroll-tbl { max-height: 620px; overflow-y: auto; }
+
+.banner {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  margin-bottom: 1rem;
+  display: flex; align-items: center; gap: 10px;
+}
+.banner-info { background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); color: var(--blue); }
+.banner-err { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); color: var(--red); }
+.banner-warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); color: var(--amber); }
+
+.loading {
+  display: flex; align-items: center; justify-content: center;
+  padding: 3rem; color: var(--text-muted); font-size: 13px;
+}
+.spinner {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--blue);
+  animation: spin 0.8s linear infinite;
+  margin-right: 10px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.muted { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div>
+    <h1><span class="live-dot" id="live-dot"></span> IG Live</h1>
+    <div class="subtitle" id="ig-subtitle">Loading from Instagram Graph API…</div>
+  </div>
+  <div class="nav-links">
+    <button class="nav-link primary" id="refresh-btn" onclick="loadData(true)">↻ Refresh</button>
+    <a href="eventbrite_live_dashboard.html" class="nav-link">Events</a>
+    <a href="instagram_dashboard.html" class="nav-link">Instagram (CSV)</a>
+    <a href="ig_live_dashboard.html" class="nav-link active">IG Live</a>
+    <a href="ig_competitors.html" class="nav-link">Competitors</a>
+    <a href="ig_post_analytics.html" class="nav-link">Post Analytics</a>
+    <a href="content_calendar_live.html" class="nav-link">Calendar Live</a>
+  </div>
+</div>
+
+<div class="controls">
+  <label>Window</label>
+  <select id="days-select" onchange="loadData(false)">
+    <option value="7">Last 7 days</option>
+    <option value="30" selected>Last 30 days</option>
+    <option value="90">Last 90 days</option>
+    <option value="180">Last 180 days</option>
+    <option value="365">Last 365 days</option>
+  </select>
+  <label>Download</label>
+  <a id="csv-link" class="nav-link" href="/api/ig/posts.csv?days=30" target="_blank">CSV export</a>
+</div>
+
+<div id="banner-slot"></div>
+
+<!-- KPIs -->
+<div class="stats-row">
+  <div class="stat-card"><div class="label">Posts</div><div class="value" id="k-posts">—</div><div class="sub" id="k-posts-sub"></div></div>
+  <div class="stat-card"><div class="label">Views</div><div class="value" id="k-views">—</div><div class="sub" id="k-views-sub"></div></div>
+  <div class="stat-card"><div class="label">Reach</div><div class="value blue" id="k-reach">—</div><div class="sub" id="k-reach-sub"></div></div>
+  <div class="stat-card"><div class="label">Shares</div><div class="value cyan" id="k-shares">—</div><div class="sub" id="k-shares-sub"></div></div>
+  <div class="stat-card"><div class="label">Saves</div><div class="value amber" id="k-saves">—</div><div class="sub" id="k-saves-sub"></div></div>
+  <div class="stat-card"><div class="label">Likes</div><div class="value pink" id="k-likes">—</div></div>
+  <div class="stat-card"><div class="label">Comments</div><div class="value" id="k-comments">—</div></div>
+  <div class="stat-card"><div class="label">Avg views/post</div><div class="value purple" id="k-avg">—</div></div>
+</div>
+
+<!-- Post type breakdown -->
+<div class="section-header">
+  <h2>Performance by Post Type</h2>
+  <span class="hint">Averages per post · live data</span>
+</div>
+<div class="type-grid" id="type-grid"></div>
+
+<!-- Charts -->
+<div class="two-col">
+  <div class="panel">
+    <h3>Views & Reach over time</h3>
+    <div class="panel-sub">Weekly aggregated totals from live posts</div>
+    <div class="chart-wrap"><canvas id="weeklyChart"></canvas></div>
+  </div>
+  <div class="panel">
+    <h3>Engagement mix</h3>
+    <div class="panel-sub">Distribution of interactions across all posts</div>
+    <div class="chart-wrap"><canvas id="mixChart"></canvas></div>
+  </div>
+</div>
+
+<!-- Top posts -->
+<div class="section-header">
+  <h2>Top Posts by Views</h2>
+  <span class="hint">Click thumbnail to open on Instagram</span>
+</div>
+<div class="posts-table">
+  <table>
+    <thead>
+      <tr>
+        <th></th>
+        <th>Posted</th>
+        <th>Type</th>
+        <th>Caption</th>
+        <th class="num">Views</th>
+        <th class="num">Reach</th>
+        <th class="num">Likes</th>
+        <th class="num">Shares</th>
+        <th class="num">Saves</th>
+        <th class="num">Comments</th>
+      </tr>
+    </thead>
+    <tbody id="top-posts-body"></tbody>
+  </table>
+</div>
+
+<!-- All posts -->
+<div class="section-header">
+  <h2>All Posts (in window)</h2>
+  <span class="hint" id="all-posts-hint"></span>
+</div>
+<div class="posts-table scroll-tbl">
+  <table>
+    <thead>
+      <tr>
+        <th></th>
+        <th>Posted</th>
+        <th>Type</th>
+        <th>Caption</th>
+        <th class="num">Views</th>
+        <th class="num">Reach</th>
+        <th class="num">Likes</th>
+        <th class="num">Shares</th>
+        <th class="num">Saves</th>
+        <th class="num">Comments</th>
+      </tr>
+    </thead>
+    <tbody id="all-posts-body"></tbody>
+  </table>
+</div>
+
+<script>
+// If opened as file:// the relative paths won't resolve to the proxy.
+// If served FROM the proxy (http://localhost:3001/ig_live_dashboard.html) use relative.
+const _qApi = new URLSearchParams(location.search).get('api');
+const PROXY = _qApi || (location.protocol.startsWith('http') ? '' : 'http://localhost:3001');
+
+// ── Formatting helpers ────────────────────────────────────────
+const fmt = n => (n ?? 0).toLocaleString('en-US');
+const fmt1 = n => (n ?? 0).toLocaleString('en-US', { maximumFractionDigits: 1 });
+const fmtDate = iso => {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+const fmtDateTime = iso => {
+  const d = new Date(iso);
+  return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+};
+const typeToPillClass = t => {
+  if (t === 'IG reel') return 'pill-reel';
+  if (t === 'IG carousel') return 'pill-carousel';
+  return 'pill-image';
+};
+const typeToDotColor = t => {
+  if (t === 'IG reel') return '#A78BFA';
+  if (t === 'IG carousel') return '#EC4899';
+  return '#60A5FA';
+};
+const escHtml = s => (s || '').replace(/[&<>"']/g, c => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+));
+
+// ── Banner ────────────────────────────────────────────────────
+function showBanner(kind, msg) {
+  const slot = document.getElementById('banner-slot');
+  slot.innerHTML = `<div class="banner banner-${kind}">${msg}</div>`;
+}
+function clearBanner() { document.getElementById('banner-slot').innerHTML = ''; }
+function setDotState(state) {
+  const dot = document.getElementById('live-dot');
+  dot.className = 'live-dot' + (state === 'ok' ? '' : state === 'stale' ? ' stale' : ' err');
+}
+
+// ── Charts ────────────────────────────────────────────────────
+let weeklyChart, mixChart;
+const chartDefaults = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: {
+    legend: { labels: { color: '#888', font: { size: 11 } } },
+    tooltip: { backgroundColor: '#1A1A1A', titleColor: '#F0F0F0', bodyColor: '#F0F0F0', borderColor: '#2A2A2A', borderWidth: 1 }
+  },
+  scales: {
+    x: { grid: { color: '#1A1A1A' }, ticks: { color: '#888', font: { size: 10 } } },
+    y: { grid: { color: '#1A1A1A' }, ticks: { color: '#888', font: { size: 10 } } }
+  }
+};
+
+function bucketWeekly(posts) {
+  const buckets = new Map();
+  for (const p of posts) {
+    const d = new Date(p.timestamp);
+    const monday = new Date(d);
+    monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    monday.setHours(0, 0, 0, 0);
+    const key = monday.toISOString().slice(0, 10);
+    if (!buckets.has(key)) buckets.set(key, { week: monday, views: 0, reach: 0, shares: 0, posts: 0 });
+    const b = buckets.get(key);
+    b.views += p.views || 0;
+    b.reach += p.reach || 0;
+    b.shares += p.shares || 0;
+    b.posts += 1;
+  }
+  return [...buckets.values()].sort((a, b) => a.week - b.week);
+}
+
+function renderWeeklyChart(posts) {
+  const rows = bucketWeekly(posts);
+  const labels = rows.map(r => fmtDate(r.week));
+  const ctx = document.getElementById('weeklyChart').getContext('2d');
+  if (weeklyChart) weeklyChart.destroy();
+  weeklyChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Views',  data: rows.map(r => r.views),  borderColor: '#F0F0F0', backgroundColor: 'rgba(240,240,240,0.08)', tension: 0.35, fill: true, pointRadius: 3 },
+        { label: 'Reach',  data: rows.map(r => r.reach),  borderColor: '#60A5FA', backgroundColor: 'rgba(96,165,250,0.08)', tension: 0.35, fill: true, pointRadius: 3 },
+        { label: 'Shares', data: rows.map(r => r.shares), borderColor: '#22D3EE', backgroundColor: 'rgba(34,211,238,0.0)',  tension: 0.35, fill: false, pointRadius: 3, yAxisID: 'y1' }
+      ]
+    },
+    options: {
+      ...chartDefaults,
+      scales: {
+        x: chartDefaults.scales.x,
+        y: { ...chartDefaults.scales.y, position: 'left' },
+        y1: { ...chartDefaults.scales.y, position: 'right', grid: { drawOnChartArea: false } }
+      }
+    }
+  });
+}
+
+function renderMixChart(totals) {
+  const ctx = document.getElementById('mixChart').getContext('2d');
+  if (mixChart) mixChart.destroy();
+  mixChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Likes', 'Comments', 'Shares', 'Saves'],
+      datasets: [{
+        data: [totals.likes, totals.comments, totals.shares, totals.saves],
+        backgroundColor: ['#EC4899', '#F0F0F0', '#22D3EE', '#F59E0B'],
+        borderColor: '#0C0C0C', borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { color: '#888', font: { size: 11 }, padding: 12 } },
+        tooltip: chartDefaults.plugins.tooltip
+      }
+    }
+  });
+}
+
+// ── KPIs, type grid, tables ───────────────────────────────────
+function renderKPIs(payload) {
+  const t = payload.totals || {};
+  document.getElementById('k-posts').textContent = fmt(t.posts);
+  document.getElementById('k-views').textContent = fmt(t.views);
+  document.getElementById('k-reach').textContent = fmt(t.reach);
+  document.getElementById('k-shares').textContent = fmt(t.shares);
+  document.getElementById('k-saves').textContent = fmt(t.saves);
+  document.getElementById('k-likes').textContent = fmt(t.likes);
+  document.getElementById('k-comments').textContent = fmt(t.comments);
+  const avgViews = t.posts ? Math.round(t.views / t.posts) : 0;
+  document.getElementById('k-avg').textContent = fmt(avgViews);
+  document.getElementById('k-posts-sub').textContent = `last ${payload.window_days} days`;
+  document.getElementById('k-views-sub').textContent = `${fmt(avgViews)} avg/post`;
+  const engagement = (t.likes + t.comments + t.shares + t.saves);
+  document.getElementById('k-reach-sub').textContent = t.reach ? `${((engagement / t.reach) * 100).toFixed(1)}% engagement rate` : '';
+  document.getElementById('k-shares-sub').textContent = t.views ? `${((t.shares / t.views) * 100).toFixed(2)}% share rate` : '';
+  document.getElementById('k-saves-sub').textContent = t.views ? `${((t.saves / t.views) * 100).toFixed(2)}% save rate` : '';
+}
+
+function renderTypeGrid(byType) {
+  const order = ['IG image', 'IG reel', 'IG carousel'];
+  const html = order.filter(t => byType[t]).map(t => {
+    const m = byType[t];
+    return `<div class="type-card">
+      <div class="type-title"><span class="type-dot" style="background:${typeToDotColor(t)}"></span>${t} · ${m.count}</div>
+      <div class="big-num">${fmt(m.avg_views)}</div>
+      <div class="muted" style="font-size:11px">avg views per post</div>
+      <div class="type-metrics">
+        <div class="type-metric"><div class="mlabel">Avg reach</div><div class="mval">${fmt(m.avg_reach)}</div></div>
+        <div class="type-metric"><div class="mlabel">Avg shares</div><div class="mval">${fmt1(m.avg_shares)}</div></div>
+        <div class="type-metric"><div class="mlabel">Avg saves</div><div class="mval">${fmt1(m.avg_saves)}</div></div>
+        <div class="type-metric"><div class="mlabel">Total views</div><div class="mval">${fmt(m.total_views)}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('type-grid').innerHTML = html || '<div class="muted" style="padding:20px">No posts in window</div>';
+}
+
+function rowHtml(p) {
+  const thumb = p.thumbnail
+    ? `<a href="${escHtml(p.permalink)}" target="_blank"><img class="thumb" src="${escHtml(p.thumbnail)}" alt="" loading="lazy" onerror="this.style.display='none'"></a>`
+    : `<a href="${escHtml(p.permalink)}" target="_blank" class="muted">↗</a>`;
+  return `<tr>
+    <td>${thumb}</td>
+    <td>${fmtDateTime(p.timestamp)}</td>
+    <td><span class="pill ${typeToPillClass(p.type)}">${p.type.replace('IG ', '')}</span></td>
+    <td class="desc-cell" title="${escHtml(p.caption)}">${escHtml((p.caption || '').slice(0, 120))}</td>
+    <td class="num">${fmt(p.views)}</td>
+    <td class="num">${fmt(p.reach)}</td>
+    <td class="num">${fmt(p.likes)}</td>
+    <td class="num">${fmt(p.shares)}</td>
+    <td class="num">${fmt(p.saves)}</td>
+    <td class="num">${fmt(p.comments)}</td>
+  </tr>`;
+}
+
+function renderTables(posts) {
+  const top10 = [...posts].sort((a, b) => b.views - a.views).slice(0, 10);
+  document.getElementById('top-posts-body').innerHTML = top10.map(rowHtml).join('');
+  document.getElementById('all-posts-body').innerHTML = posts.map(rowHtml).join('');
+  document.getElementById('all-posts-hint').textContent = `${posts.length} posts · newest first`;
+}
+
+// ── Data loader ───────────────────────────────────────────────
+async function loadData(forceFresh) {
+  const btn = document.getElementById('refresh-btn');
+  const days = document.getElementById('days-select').value;
+  btn.disabled = true; btn.textContent = '… Loading';
+
+  // Update CSV link
+  document.getElementById('csv-link').href = `${PROXY}/api/ig/posts.csv?days=${days}`;
+
+  // Loading state in KPIs
+  ['k-posts', 'k-views', 'k-reach', 'k-shares', 'k-saves', 'k-likes', 'k-comments', 'k-avg']
+    .forEach(id => document.getElementById(id).textContent = '…');
+
+  try {
+    const url = `${PROXY}/api/ig/posts?days=${days}${forceFresh ? '&fresh=1' : ''}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Unknown API error');
+
+    setDotState('ok');
+    clearBanner();
+
+    const fetchedAt = new Date(data.fetched_at);
+    const cachedBadge = data.cached ? ' · <span class="muted">(cached)</span>' : '';
+    document.getElementById('ig-subtitle').innerHTML =
+      `@southasiansocials · last ${data.window_days} days · ${data.posts.length} posts · updated ${fetchedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}${cachedBadge}`;
+
+    renderKPIs(data);
+    renderTypeGrid(data.by_type || {});
+    renderWeeklyChart(data.posts);
+    renderMixChart(data.totals);
+    renderTables(data.posts);
+
+    // Warn if any post has 0 insights (likely permission issue)
+    const zeroViewPosts = data.posts.filter(p => p.views === 0 && p.reach === 0).length;
+    if (zeroViewPosts > 0 && zeroViewPosts === data.posts.length) {
+      showBanner('warn', `⚠ All ${data.posts.length} posts show zero insights. The <code>instagram_business_manage_insights</code> permission may not be active on your token — regenerate it with that scope.`);
+    } else if (zeroViewPosts > data.posts.length * 0.3) {
+      showBanner('warn', `⚠ ${zeroViewPosts} of ${data.posts.length} posts returned no insight data (likely very old posts — Instagram only keeps metrics for ~2 years).`);
+    }
+  } catch (e) {
+    console.error(e);
+    setDotState('err');
+    const msg = (e.message || String(e)).toLowerCase();
+    if (msg.includes('token') || msg.includes('oauth')) {
+      showBanner('err', `✗ Token error: <strong>${escHtml(e.message)}</strong>. Regenerate the token in Meta Developer Console and update <code>IG_ACCESS_TOKEN</code> in <code>.env</code>, then restart the server.`);
+    } else if (msg.includes('fetch') || msg.includes('network')) {
+      showBanner('err', `✗ Can't reach the proxy server. Run <code>npm start</code> in the <code>eventbrite-proxy</code> folder, then refresh.`);
+    } else {
+      showBanner('err', `✗ ${escHtml(e.message)}`);
+    }
+    document.getElementById('ig-subtitle').textContent = 'Failed to load live data';
+  } finally {
+    btn.disabled = false; btn.textContent = '↻ Refresh';
+  }
+}
+
+// Initial load
+loadData(false);
+// Auto-refresh every 10 minutes
+setInterval(() => loadData(false), 10 * 60 * 1000);
+</script>
+
+</body>
+</html>

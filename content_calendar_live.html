@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Live Calendar — South Asian Socials</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0C0C0C;
+  --bg-card: #141414;
+  --bg-elevated: #1A1A1A;
+  --bg-input: #111111;
+  --border: #2A2A2A;
+  --border-focus: #444;
+  --text: #F0F0F0;
+  --text-muted: #888;
+  --text-dim: #555;
+  --accent: #FFFFFF;
+  --green: #22C55E;
+  --red: #EF4444;
+  --amber: #F59E0B;
+  --blue: #60A5FA;
+  --purple: #A78BFA;
+  --pink: #EC4899;
+  --cyan: #22D3EE;
+  --radius: 8px;
+  --radius-sm: 5px;
+  --radius-pill: 99px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  background: var(--bg); color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  padding: 1.5rem 1.75rem 4rem;
+  max-width: 1500px; margin: 0 auto;
+}
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.top-bar {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; flex-wrap: wrap;
+  gap: 14px; margin-bottom: 1.75rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.top-bar h1 {
+  font-size: 18px; font-weight: 600;
+  color: var(--accent); letter-spacing: -0.4px;
+  display: flex; align-items: center; gap: 10px;
+}
+.live-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 0 rgba(34,197,94,0.6);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.6); }
+  70% { box-shadow: 0 0 0 10px rgba(34,197,94,0); }
+  100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+}
+.live-dot.err { background: var(--red); animation: none; }
+.live-dot.warn { background: var(--amber); animation: none; }
+.top-bar .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.nav-links { display: flex; gap: 6px; flex-wrap: wrap; }
+.nav-link {
+  font-size: 12px; padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  transition: all 0.12s; cursor: pointer;
+}
+.nav-link:hover { border-color: var(--border-focus); color: var(--text); text-decoration: none; }
+.nav-link.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+.nav-link.primary { background: var(--blue); color: #000; border-color: var(--blue); font-weight: 600; }
+.nav-link.primary:hover { background: #7ab4fc; }
+.nav-link:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.controls {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 1.25rem;
+}
+.controls label {
+  font-size: 11px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+select, input[type="number"] {
+  font-size: 12px; padding: 7px 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-input); color: var(--text); outline: none;
+}
+
+/* KPI row */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 10px; margin-bottom: 1.5rem;
+}
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px;
+}
+.stat-card .label {
+  font-size: 10px; color: var(--text-muted);
+  margin-bottom: 8px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.07em;
+}
+.stat-card .value {
+  font-size: 22px; font-weight: 700;
+  color: var(--text); letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+.stat-card .sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.stat-card .value.green { color: var(--green); }
+.stat-card .value.blue  { color: var(--blue);  }
+.stat-card .value.purple{ color: var(--purple);}
+.stat-card .value.pink  { color: var(--pink);  }
+.stat-card .value.amber { color: var(--amber); }
+.stat-card .value.cyan  { color: var(--cyan);  }
+
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px; margin-top: 1.75rem;
+  gap: 10px; flex-wrap: wrap;
+}
+.section-header h2 {
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.1em;
+}
+.section-header .hint { font-size: 11px; color: var(--text-dim); }
+
+.panel {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px;
+}
+.panel h3 { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.panel .panel-sub { font-size: 11px; color: var(--text-muted); margin-bottom: 16px; }
+
+/* Growth tracker */
+.growth-panel {
+  background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,211,238,0.08));
+  border: 1px solid rgba(34,197,94,0.25);
+  border-radius: var(--radius); padding: 20px 22px; margin-bottom: 1.5rem;
+}
+.growth-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.growth-header h2 { font-size: 15px; font-weight: 700; color: var(--green); }
+.growth-header .growth-sub { font-size: 12px; color: var(--text-muted); }
+.growth-bar-wrap { margin-bottom: 12px; }
+.growth-bar { height: 16px; background: var(--bg-card); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); position: relative; }
+.growth-bar .fill { height: 100%; background: linear-gradient(90deg, var(--green), var(--cyan)); transition: width 0.6s; border-radius: 8px; position: relative; }
+.growth-bar .fill::after { content: attr(data-pct); position: absolute; right: 8px; top: 0; font-size: 10px; font-weight: 700; color: #000; line-height: 16px; }
+.growth-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.growth-stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; }
+.growth-stat .gs-label { font-size: 9px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.07em; font-weight: 600; margin-bottom: 4px; }
+.growth-stat .gs-val { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.3px; }
+.milestones { display: flex; justify-content: space-between; margin-top: 6px; font-size: 10px; color: var(--text-dim); }
+.milestone-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 3px; }
+
+/* Insight callout */
+.insight-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px; margin-bottom: 1.5rem;
+}
+.insight-card {
+  background: linear-gradient(135deg, rgba(96,165,250,0.05), rgba(167,139,250,0.05));
+  border: 1px solid rgba(96,165,250,0.2);
+  border-radius: var(--radius); padding: 14px 16px;
+}
+.insight-card .ic-label { font-size: 10px; text-transform: uppercase; color: var(--blue); letter-spacing: 0.1em; font-weight: 600; margin-bottom: 8px; }
+.insight-card .ic-val { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 4px; letter-spacing: -0.3px; }
+.insight-card .ic-sub { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+.insight-card .ic-sub strong { color: var(--text); }
+
+/* Strategy callout */
+.strategy-callout {
+  background: linear-gradient(135deg, rgba(167,139,250,0.08), rgba(236,72,153,0.08));
+  border: 1px solid rgba(167,139,250,0.25);
+  border-radius: var(--radius); padding: 18px 20px; margin-bottom: 1.5rem;
+}
+.strategy-callout h3 { font-size: 14px; font-weight: 700; color: var(--purple); margin-bottom: 12px; }
+.strategy-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.strat-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; }
+.strat-item .si-title { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.strat-item .si-body { font-size: 11px; color: var(--text-muted); line-height: 1.45; }
+.strat-item .si-body strong { color: var(--accent); }
+
+/* Event promo cards */
+.event-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px; margin-bottom: 12px;
+}
+.event-card .ec-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 16px; margin-bottom: 14px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--border); flex-wrap: wrap;
+}
+.event-card .ec-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.event-card .ec-meta { font-size: 11px; color: var(--text-muted); }
+.event-card .ec-meta span { margin-right: 10px; }
+.event-card .ec-tickets { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.event-card .ec-tickets .tix { font-size: 11px; color: var(--text-muted); }
+.event-card .ec-tickets .tix strong { color: var(--text); font-weight: 600; font-size: 13px; }
+.progress-bar { width: 120px; height: 6px; background: var(--bg-elevated); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+.progress-bar .fill { height: 100%; background: linear-gradient(90deg, var(--green), var(--cyan)); transition: width 0.5s; }
+.progress-bar .fill.warn { background: linear-gradient(90deg, var(--amber), var(--red)); }
+
+.promo-timeline {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px;
+}
+.promo-slot {
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 12px; position: relative;
+}
+.promo-slot .ps-date { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 4px; }
+.promo-slot .ps-concept { font-size: 12px; color: var(--text); line-height: 1.4; font-weight: 500; margin-bottom: 6px; }
+.promo-slot .ps-type {
+  display: inline-block; padding: 2px 7px; border-radius: var(--radius-pill);
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.promo-slot .ps-proj { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+.ps-type.image { background: rgba(96,165,250,0.18); color: var(--blue); }
+.ps-type.reel  { background: rgba(167,139,250,0.18); color: var(--purple); }
+.ps-type.carousel { background: rgba(236,72,153,0.18); color: var(--pink); }
+.ps-type.story { background: rgba(245,158,11,0.18); color: var(--amber); }
+
+/* Stories section */
+.stories-day {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px; margin-bottom: 8px;
+}
+.stories-day .sd-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.stories-day .sd-date { font-size: 12px; font-weight: 600; color: var(--text); }
+.stories-day .sd-count { font-size: 10px; color: var(--amber); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.story-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.story-chip {
+  background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.25);
+  border-radius: var(--radius-sm); padding: 6px 10px;
+  font-size: 11px; color: var(--text); flex: 1 1 180px; min-width: 160px;
+}
+.story-chip .sc-time { font-size: 9px; color: var(--amber); font-weight: 600; text-transform: uppercase; margin-bottom: 2px; }
+.story-chip .sc-idea { font-size: 11px; color: var(--text-muted); line-height: 1.3; }
+
+/* Weekly calendar grid */
+.week-grid {
+  display: grid;
+  grid-template-columns: 110px repeat(7, 1fr);
+  gap: 4px; font-size: 11px;
+}
+.wg-header {
+  padding: 8px 10px; font-size: 10px; font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 0.08em; text-align: center;
+}
+.wg-row-label {
+  padding: 10px; color: var(--text-muted); font-size: 11px;
+  font-weight: 500; border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; justify-content: center;
+}
+.wg-row-label .week-dates { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+.wg-cell {
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 5px 6px;
+  min-height: 80px; display: flex; flex-direction: column; gap: 2px; font-size: 10px;
+}
+.wg-cell.event-day {
+  background: linear-gradient(135deg, rgba(236,72,153,0.12), rgba(167,139,250,0.12));
+  border-color: rgba(236,72,153,0.3);
+}
+.wg-cell .wg-day { font-size: 10px; color: var(--text-dim); font-weight: 600; margin-bottom: 2px; }
+.wg-cell .wg-event {
+  font-size: 8px; font-weight: 700; color: var(--pink);
+  text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wg-chip {
+  padding: 1px 4px; border-radius: 3px;
+  font-size: 8px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wg-chip.image { background: rgba(96,165,250,0.18); color: var(--blue); }
+.wg-chip.reel  { background: rgba(167,139,250,0.18); color: var(--purple); }
+.wg-chip.carousel { background: rgba(236,72,153,0.18); color: var(--pink); }
+.wg-chip.story { background: rgba(245,158,11,0.18); color: var(--amber); }
+
+/* Schedule table */
+.posts-table {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+}
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th {
+  text-align: left; padding: 11px 14px; color: var(--text-muted); font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px;
+  border-bottom: 1px solid var(--border); background: var(--bg-elevated); position: sticky; top: 0;
+}
+th.num { text-align: right; }
+td {
+  padding: 11px 14px; border-bottom: 1px solid var(--border);
+  color: var(--text); font-variant-numeric: tabular-nums; vertical-align: middle;
+}
+td.num { text-align: right; }
+tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: rgba(255,255,255,0.02); }
+.pill {
+  display: inline-block; padding: 2px 8px; font-size: 10px;
+  border-radius: var(--radius-pill); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.pill-image { background: rgba(96,165,250,0.15); color: var(--blue); }
+.pill-reel  { background: rgba(167,139,250,0.15); color: var(--purple); }
+.pill-carousel { background: rgba(236,72,153,0.15); color: var(--pink); }
+.pill-story { background: rgba(245,158,11,0.15); color: var(--amber); }
+
+.muted { color: var(--text-muted); }
+.banner { padding: 12px 16px; border-radius: var(--radius); font-size: 12px; margin-bottom: 1rem; }
+.banner-err { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); color: var(--red); }
+.banner-warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); color: var(--amber); }
+.loading { padding: 3rem; color: var(--text-muted); font-size: 13px; text-align: center; }
+.spinner {
+  display: inline-block; width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--border); border-top-color: var(--blue);
+  animation: spin 0.8s linear infinite; margin-right: 10px; vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.chart-wrap { position: relative; height: 260px; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+@media (max-width: 900px) {
+  .week-grid { grid-template-columns: 90px repeat(7, minmax(55px, 1fr)); overflow-x: auto; }
+  .two-col { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div>
+    <h1><span class="live-dot" id="live-dot"></span> Growth Content Calendar</h1>
+    <div class="subtitle" id="live-subtitle">Pulling Instagram + Eventbrite data…</div>
+  </div>
+  <div class="nav-links">
+    <button class="nav-link primary" id="refresh-btn" onclick="loadAll(true)">↻ Refresh</button>
+    <button class="nav-link" id="sync-sheets-btn" onclick="syncToSheets()" style="cursor:pointer" title="Sync full post schedule to Google Sheets">↑ Sync to Sheets</button>
+    <a href="eventbrite_live_dashboard.html" class="nav-link">Events</a>
+    <a href="instagram_dashboard.html" class="nav-link">Instagram</a>
+    <a href="ig_post_analytics.html" class="nav-link">Post Analytics</a>
+    <a href="ig_live_dashboard.html" class="nav-link">IG Live</a>
+    <a href="ig_competitors.html" class="nav-link">Competitors</a>
+    <a href="content_calendar_live.html" class="nav-link active">Calendar (live)</a>
+  </div>
+</div>
+
+<div class="controls">
+  <label>Planning horizon</label>
+  <select id="weeks-select" onchange="rebuild()">
+    <option value="4">4 weeks</option>
+    <option value="8" selected>8 weeks</option>
+    <option value="12">12 weeks</option>
+    <option value="16">16 weeks</option>
+  </select>
+  <label>Posts/day</label>
+  <select id="posts-per-day" onchange="rebuild()">
+    <option value="1" selected>1 post/day</option>
+    <option value="2">2 posts/day</option>
+  </select>
+  <label>Stories/day</label>
+  <select id="stories-per-day" onchange="rebuild()">
+    <option value="3">3 stories</option>
+    <option value="4">4 stories</option>
+    <option value="5" selected>5 stories</option>
+  </select>
+  <label>Follower goal</label>
+  <input type="number" id="goal-followers" value="10000" min="0" step="500" onchange="rebuild()" style="width:100px">
+  <label>Current</label>
+  <input type="number" id="current-followers" value="0" min="0" step="100" onchange="rebuild()" style="width:100px">
+</div>
+
+<div id="banner-slot"></div>
+<div id="content-slot">
+  <div class="loading"><span class="spinner"></span> Loading Instagram + Eventbrite data…</div>
+</div>
+
+<script>
+// API base URL — configurable via ?api=https://your-server.com query param
+// Falls back to same-origin (when served by the proxy) or localhost for file://
+const _qApi = new URLSearchParams(location.search).get('api');
+const PROXY = _qApi || (location.protocol.startsWith('http') ? '' : 'http://localhost:3001');
+
+// ── Formatters ──
+const fmt = n => (n ?? 0).toLocaleString('en-US');
+const fmt1 = n => (n ?? 0).toLocaleString('en-US', { maximumFractionDigits: 1 });
+const fmtDate = d => {
+  const dt = d instanceof Date ? d : new Date(d);
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+const fmtDateFull = d => {
+  const dt = d instanceof Date ? d : new Date(d);
+  return dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+};
+const escHtml = s => (s || '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const dayName = i => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][i];
+const daysBetween = (a, b) => Math.floor((b - a) / 86400000);
+
+function setDotState(state) {
+  document.getElementById('live-dot').className = 'live-dot' + (state === 'ok' ? '' : state === 'warn' ? ' warn' : ' err');
+}
+function showBanner(kind, msg) {
+  const slot = document.getElementById('banner-slot');
+  slot.innerHTML = (slot.innerHTML || '') + `<div class="banner banner-${kind}">${msg}</div>`;
+}
+function clearBanner() { document.getElementById('banner-slot').innerHTML = ''; }
+
+// ── Global state ──
+let STATE = { igPosts: [], events: [], analysis: null, plan: null };
+
+// ── Data fetching ──
+async function fetchIG(forceFresh) {
+  const url = `${PROXY}/api/ig/posts?days=180${forceFresh ? '&fresh=1' : ''}`;
+  const r = await fetch(url);
+  const d = await r.json();
+  if (!d.ok) throw new Error('Instagram: ' + (d.error || 'unknown error'));
+  return d;
+}
+async function fetchEvents() {
+  const r = await fetch(`${PROXY}/api/my-events`);
+  const d = await r.json();
+  if (d.error) throw new Error('Eventbrite: ' + d.error);
+  return d.events || [];
+}
+
+// ── Performance Analysis ──
+function analyzePerformance(posts) {
+  if (!posts.length) return null;
+  const byType = { 'IG image': [], 'IG reel': [], 'IG carousel': [] };
+  for (const p of posts) if (byType[p.type]) byType[p.type].push(p);
+
+  const typeStats = {};
+  for (const [t, arr] of Object.entries(byType)) {
+    if (!arr.length) continue;
+    const n = arr.length;
+    typeStats[t] = {
+      count: n,
+      avg_views: arr.reduce((s, p) => s + p.views, 0) / n,
+      avg_reach: arr.reduce((s, p) => s + p.reach, 0) / n,
+      avg_shares: arr.reduce((s, p) => s + p.shares, 0) / n,
+      avg_saves: arr.reduce((s, p) => s + p.saves, 0) / n,
+      avg_likes: arr.reduce((s, p) => s + p.likes, 0) / n,
+      avg_comments: arr.reduce((s, p) => s + p.comments, 0) / n,
+    };
+  }
+
+  const sortedByReach = Object.entries(typeStats).sort((a, b) => b[1].avg_reach - a[1].avg_reach);
+  const sortedByShares = Object.entries(typeStats).sort((a, b) => b[1].avg_shares - a[1].avg_shares);
+  const bestReachFormat = sortedByReach[0]?.[0];
+  const bestShareFormat = sortedByShares[0]?.[0];
+
+  const dowStats = Array.from({ length: 7 }, () => ({ count: 0, views: 0, reach: 0 }));
+  for (const p of posts) {
+    const d = new Date(p.timestamp); const i = d.getDay();
+    dowStats[i].count += 1; dowStats[i].views += p.views; dowStats[i].reach += p.reach;
+  }
+  const dowAvg = dowStats.map((s, i) => ({
+    dow: i, name: dayName(i),
+    avg_views: s.count ? Math.round(s.views / s.count) : 0,
+    avg_reach: s.count ? Math.round(s.reach / s.count) : 0,
+    count: s.count,
+  }));
+  const bestDays = [...dowAvg].filter(d => d.count >= 1).sort((a, b) => b.avg_reach - a.avg_reach).slice(0, 3);
+
+  const hourStats = Array.from({ length: 24 }, () => ({ count: 0, views: 0, reach: 0 }));
+  for (const p of posts) {
+    const h = new Date(p.timestamp).getHours();
+    hourStats[h].count += 1; hourStats[h].views += p.views; hourStats[h].reach += p.reach;
+  }
+  const hourAvg = hourStats.map((s, i) => ({ hour: i, avg_reach: s.count ? Math.round(s.reach / s.count) : 0, count: s.count }));
+  const bestHours = [...hourAvg].filter(h => h.count >= 1).sort((a, b) => b.avg_reach - a.avg_reach).slice(0, 3);
+
+  const totals = posts.reduce((a, p) => ({
+    views: a.views + p.views, reach: a.reach + p.reach,
+    likes: a.likes + p.likes, shares: a.shares + p.shares,
+    saves: a.saves + p.saves, comments: a.comments + p.comments,
+  }), { views: 0, reach: 0, likes: 0, shares: 0, saves: 0, comments: 0 });
+
+  const avgReach = posts.length ? totals.reach / posts.length : 0;
+  const totalReachWeight = Object.values(typeStats).reduce((s, x) => s + Math.max(x.avg_reach, 1), 0);
+  const formatMix = {};
+  for (const [t, s] of Object.entries(typeStats)) formatMix[t] = Math.max(s.avg_reach, 1) / totalReachWeight;
+
+  return { typeStats, dowAvg, hourAvg, bestDays, bestHours, bestReachFormat, bestShareFormat, totals, avgReach, formatMix, sampleSize: posts.length };
+}
+
+// ── STORY IDEAS LIBRARY ──
+const STORY_IDEAS = {
+  'event-countdown': [
+    { time: '9:00 AM', idea: 'Countdown sticker — "{X} days until the mixer!"' },
+    { time: '12:00 PM', idea: 'Poll: "Who\'s coming to {city}?" with venue teaser' },
+    { time: '3:00 PM', idea: 'Ticket link + "spots are filling up" urgency' },
+    { time: '6:00 PM', idea: 'Attendee testimonial screenshot / past event clip' },
+    { time: '9:00 PM', idea: 'DM me for details CTA + event poster' },
+  ],
+  'event-day': [
+    { time: '10:00 AM', idea: 'Event day! Behind-the-scenes venue setup' },
+    { time: '1:00 PM', idea: '"Tonight is the night" hype story + countdown' },
+    { time: '5:00 PM', idea: 'Getting ready — outfit check / team prep' },
+    { time: '8:00 PM', idea: 'Live from the event — energy, crowd, vibes' },
+    { time: '11:00 PM', idea: 'Wrap-up: "what a night" + thank you + next event tease' },
+  ],
+  'event-recap': [
+    { time: '10:00 AM', idea: 'Best moments reel from last night (photo dump)' },
+    { time: '12:00 PM', idea: '"Tag someone you met!" community engagement' },
+    { time: '3:00 PM', idea: 'Attendee DM screenshots / reactions (with permission)' },
+    { time: '6:00 PM', idea: 'Quick stat — "X people showed up, next one is {date}"' },
+    { time: '9:00 PM', idea: 'Link to upcoming events + "don\'t miss the next one"' },
+  ],
+  'growth-push': [
+    { time: '9:00 AM', idea: 'Share today\'s post to story with "New post!" sticker' },
+    { time: '12:00 PM', idea: 'Question box: "What city should we come to next?"' },
+    { time: '3:00 PM', idea: 'Repost UGC / attendee tagged story' },
+    { time: '6:00 PM', idea: 'Quick tip / dating advice / cultural meme' },
+    { time: '9:00 PM', idea: 'Engagement sticker: quiz, poll, or "this or that"' },
+  ],
+  'community': [
+    { time: '9:00 AM', idea: 'Share today\'s post/reel to story with reaction' },
+    { time: '12:00 PM', idea: 'Poll: "Single or taken?" or "App dating vs IRL?"' },
+    { time: '3:00 PM', idea: 'Motivational quote or cultural reference about love' },
+    { time: '6:00 PM', idea: 'Behind-the-scenes: planning next event / team fun' },
+    { time: '9:00 PM', idea: '"Send this to your single friend" share prompt' },
+  ],
+};
+
+// ── REEL IDEAS LIBRARY ──
+const REEL_IDEAS = [
+  { concept: 'Event recap highlights reel — best moments montage', hook: 'You missed THIS?!' },
+  { concept: 'POV: Walking into a South Asian Singles Mixer', hook: 'POV: Your first mixer' },
+  { concept: 'Attendee reaction compilation — real people, real vibes', hook: 'Their reactions say it all' },
+  { concept: 'Before vs after the event — empty venue → packed room', hook: 'The transformation' },
+  { concept: '"How we met" couple story — attendees who matched', hook: 'They met at our event' },
+  { concept: 'Day in the life: organizing a singles mixer', hook: 'What it takes to host 200 singles' },
+  { concept: 'Top 5 moments from this month\'s events', hook: 'Our top 5 this month' },
+  { concept: 'Outfit check — what people wore to the mixer', hook: 'The fits were ON POINT' },
+  { concept: 'Speed dating round clip with reactions', hook: '60 seconds to make an impression' },
+  { concept: 'City spotlight — why {city} events hit different', hook: 'Why {city} goes the hardest' },
+  { concept: '"Apps vs us" comparison trend', hook: 'Dating apps had their chance' },
+  { concept: 'Venue tour — where the next event is happening', hook: 'Sneak peek of the venue' },
+  { concept: 'Salsa night moments — dancing clips compilation', hook: 'South Asians + Salsa = this' },
+  { concept: 'Testimonials reel — what attendees actually said', hook: 'Don\'t take our word for it' },
+  { concept: '"Bring your single friend" challenge reel', hook: 'Tag your single friend' },
+  { concept: 'Event announcement — dramatic reveal of next date', hook: 'Mark your calendars' },
+  { concept: 'Cultural comedy — relatable desi dating moments', hook: 'When your parents ask...' },
+  { concept: 'Behind the scenes — team planning & setup', hook: 'The chaos before the calm' },
+  { concept: 'Trending audio + event footage mashup', hook: '(trending sound + our energy)' },
+  { concept: 'Q&A — answering DMs about the events', hook: 'You asked, we answered' },
+  { concept: '"What happens at a mixer" explainer for newcomers', hook: 'First time? Here\'s what to expect' },
+  { concept: 'Success stories compilation — couples from events', hook: 'Proof it works' },
+  { concept: 'Mini vlog — host perspective at the event', hook: 'Come host a mixer with me' },
+  { concept: 'Reaction to our own viral post / milestone', hook: 'We can\'t believe this...' },
+  { concept: '"Not your parents\' rishta" rebrand moment', hook: 'Modern desi dating looks like this' },
+  { concept: 'City comparison — Toronto vs NYC vibes', hook: 'Which city does it better?' },
+  { concept: 'Getting ready with us — pre-event energy', hook: 'GRWM for the mixer' },
+  { concept: 'The crowd energy moment — that one peak scene', hook: 'THIS is why you show up' },
+];
+
+// ── IMAGE POST IDEAS (shareable, high-reach) ──
+const IMAGE_IDEAS = [
+  { concept: 'Event announcement — bold city + date graphic', hook: 'Save this date' },
+  { concept: '"Still swiping?" provocation post — link to event', hook: 'Delete the apps' },
+  { concept: 'Best photo from last event — crowd/vibes shot', hook: 'This energy is unmatched' },
+  { concept: 'City-specific post — "Toronto/NYC, this one\'s for you"', hook: 'Your city, your night' },
+  { concept: 'Marriage-minded / professional mixer promo', hook: 'For the serious ones' },
+  { concept: 'Cultural pride post — celebrating South Asian connections', hook: 'Same culture, different story' },
+  { concept: 'Attendee spotlight — with permission, their story', hook: 'Meet someone from our last event' },
+  { concept: 'SOLD OUT announcement for urgency on next one', hook: 'It happened again' },
+  { concept: 'Shareable quote graphic about dating IRL', hook: 'Forward this to someone who needs it' },
+  { concept: '"Bring your single friend" share-bait', hook: 'You know who needs to see this' },
+];
+
+// ── CAROUSEL IDEAS ──
+const CAROUSEL_IDEAS = [
+  { concept: 'Event photo dump — 8-10 best shots from last event', hook: 'Photo dump incoming' },
+  { concept: '"5 reasons to come to our next mixer" carousel', hook: 'Still on the fence?' },
+  { concept: 'City recap — highlights from all events this month', hook: 'This month was something else' },
+  { concept: '"What to expect" guide for first-timers', hook: 'Your guide to the mixer' },
+];
+
+// ── Plan generator (DAILY POSTING + STORIES) ──
+function buildPlan(analysis, events, { weeks = 8, postsPerDay = 1, storiesPerDay = 5 } = {}) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const horizonEnd = new Date(today); horizonEnd.setDate(horizonEnd.getDate() + weeks * 7);
+
+  const upcoming = (events || [])
+    .filter(e => e.start && e.status !== 'canceled')
+    .map(e => ({ ...e, startDate: new Date(e.start) }))
+    .filter(e => e.startDate >= today && e.startDate <= horizonEnd)
+    .sort((a, b) => a.startDate - b.startDate);
+
+  const bestHours = (analysis?.bestHours?.length ? analysis.bestHours.map(h => h.hour) : [19, 9, 18]);
+  const bestReachFmt = analysis?.bestReachFormat || 'IG image';
+  const bestShareFmt = analysis?.bestShareFormat || 'IG reel';
+
+  // Build event date map for quick lookup
+  const eventDateMap = {};
+  for (const ev of upcoming) {
+    const key = ev.startDate.toISOString().slice(0, 10);
+    if (!eventDateMap[key]) eventDateMap[key] = [];
+    eventDateMap[key].push(ev);
+  }
+
+  // Build event promo posts (expanded ramp with more touch points)
+  const eventPosts = [];
+  const promoRamp = [
+    { d: 21, concept: 'Event announcement — save-the-date graphic', type: bestReachFmt },
+    { d: 14, concept: 'Lineup/venue reveal reel with details', type: 'IG reel' },
+    { d: 10, concept: '"Why this night is different" — shareable image', type: 'IG image' },
+    { d: 7,  concept: 'One week out — early-bird ticket push reel', type: 'IG reel' },
+    { d: 5,  concept: 'Past event recap carousel — proof of vibes', type: 'IG carousel' },
+    { d: 4,  concept: 'Countdown reel — "4 days until {city}"', type: 'IG reel' },
+    { d: 2,  concept: 'Final 48hrs — tickets moving fast image', type: 'IG image' },
+    { d: 1,  concept: 'Tomorrow night hype reel — energy building', type: 'IG reel' },
+    { d: 0,  concept: 'Event day — "doors open tonight" energy', type: 'IG image' },
+    { d: -1, concept: 'Recap reel — best moments from last night', type: 'IG reel' },
+    { d: -3, concept: 'Post-event community photo dump carousel', type: 'IG carousel' },
+  ];
+
+  for (const ev of upcoming) {
+    for (const step of promoRamp) {
+      const d = new Date(ev.startDate);
+      d.setDate(d.getDate() - step.d);
+      d.setHours(bestHours[0] || 19, 0, 0, 0);
+      if (d < today || d > horizonEnd) continue;
+      eventPosts.push({
+        scheduled_at: d,
+        type: step.type,
+        concept: step.concept.replace('{city}', ev.venue?.city || 'the mixer'),
+        event: ev,
+        category: 'event-promo',
+        projected_reach: analysis?.typeStats?.[step.type]?.avg_reach || analysis?.avgReach || 0,
+      });
+    }
+  }
+
+  // Build occupied date set from event posts
+  const occupied = {};
+  for (const p of eventPosts) {
+    const key = p.scheduled_at.toISOString().slice(0, 10);
+    if (!occupied[key]) occupied[key] = [];
+    occupied[key].push(p);
+  }
+
+  // Fill EVERY day with at least postsPerDay post(s)
+  // Format rotation: heavily weighted toward reels (50%) + images (35%) + carousels (15%)
+  const totalDays = weeks * 7;
+  let reelIdx = 0, imageIdx = 0, carouselIdx = 0;
+  const allPosts = [...eventPosts];
+
+  for (let di = 0; di < totalDays; di++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() + di);
+    const key = d.toISOString().slice(0, 10);
+    const existingCount = (occupied[key] || []).length;
+    const needed = Math.max(0, postsPerDay - existingCount);
+
+    for (let s = 0; s < needed; s++) {
+      const slotDate = new Date(d);
+      // Alternate posting times for variety
+      const hourOptions = [bestHours[0] || 9, bestHours[1] || 19, bestHours[2] || 12];
+      slotDate.setHours(hourOptions[s % hourOptions.length], 0, 0, 0);
+
+      // Determine format: 50% reels, 35% images, 15% carousels
+      // This weekly rotation ensures reels dominate
+      const dayOfWeek = d.getDay();
+      const weekDay = di % 7;
+      let type, concept, hook;
+
+      // Pattern: Mon=Reel, Tue=Image, Wed=Reel, Thu=Reel, Fri=Image, Sat=Reel, Sun=Carousel
+      // This gives 4 reels, 2 images, 1 carousel per week
+      if (weekDay === 0) { // Sun
+        const ci = CAROUSEL_IDEAS[carouselIdx++ % CAROUSEL_IDEAS.length];
+        type = 'IG carousel'; concept = ci.concept; hook = ci.hook;
+      } else if (weekDay === 1 || weekDay === 4) { // Tue, Fri
+        const ii = IMAGE_IDEAS[imageIdx++ % IMAGE_IDEAS.length];
+        type = 'IG image'; concept = ii.concept; hook = ii.hook;
+      } else { // Mon, Wed, Thu, Sat = Reels
+        const ri = REEL_IDEAS[reelIdx++ % REEL_IDEAS.length];
+        type = 'IG reel'; concept = ri.concept; hook = ri.hook;
+      }
+
+      allPosts.push({
+        scheduled_at: slotDate,
+        type,
+        concept,
+        hook: hook || '',
+        event: null,
+        category: 'organic-growth',
+        projected_reach: analysis?.typeStats?.[type]?.avg_reach || analysis?.avgReach || 0,
+      });
+    }
+  }
+
+  allPosts.sort((a, b) => a.scheduled_at - b.scheduled_at);
+
+  // ── Build stories plan (3-5 per day, every day) ──
+  const stories = [];
+  for (let di = 0; di < totalDays; di++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() + di);
+    const key = d.toISOString().slice(0, 10);
+
+    // Determine story theme based on proximity to events
+    let storyTheme = 'growth-push';
+    const daysToEvent = upcoming.map(ev => ({ ev, delta: daysBetween(d, ev.startDate) })).filter(x => x.delta >= 0).sort((a, b) => a.delta - b.delta);
+    const closestEvent = daysToEvent[0];
+
+    if (closestEvent) {
+      if (closestEvent.delta === 0) storyTheme = 'event-day';
+      else if (closestEvent.delta <= 7) storyTheme = 'event-countdown';
+      else storyTheme = 'growth-push';
+    }
+
+    // Check if yesterday was an event day
+    const yesterday = new Date(d); yesterday.setDate(yesterday.getDate() - 1);
+    const ydayKey = yesterday.toISOString().slice(0, 10);
+    if (eventDateMap[ydayKey]) storyTheme = 'event-recap';
+
+    // On days with no event proximity at all, alternate between community and growth
+    if (!closestEvent && di % 2 === 0) storyTheme = 'community';
+
+    const ideaSet = STORY_IDEAS[storyTheme] || STORY_IDEAS['growth-push'];
+    const count = Math.min(storiesPerDay, ideaSet.length);
+
+    stories.push({
+      date: new Date(d),
+      theme: storyTheme,
+      closestEvent: closestEvent?.ev || null,
+      items: ideaSet.slice(0, count).map(item => ({
+        time: item.time,
+        idea: item.idea
+          .replace('{city}', closestEvent?.ev?.venue?.city || 'your city')
+          .replace('{X}', closestEvent?.delta || '?')
+          .replace('{date}', closestEvent?.ev ? fmtDate(closestEvent.ev.startDate) : 'TBD'),
+      })),
+    });
+  }
+
+  // Count format mix
+  const formatCounts = { 'IG reel': 0, 'IG image': 0, 'IG carousel': 0 };
+  for (const p of allPosts) if (formatCounts[p.type] != null) formatCounts[p.type]++;
+
+  return { posts: allPosts, upcoming, stories, formatCounts };
+}
+
+// ── Renderers ──
+function renderGrowthTracker(analysis, plan, followerGoal, currentFollowers) {
+  const projectedReach = Math.round(plan.posts.reduce((s, p) => s + p.projected_reach, 0));
+  const followerGap = Math.max(0, followerGoal - currentFollowers);
+  const reachPerFollow = 250; // images drive ~1/250 ratio
+  const projectedFollows = Math.round(projectedReach / reachPerFollow);
+  const projectedTotal = currentFollowers + projectedFollows;
+  const pctToGoal = followerGoal > 0 ? Math.min(100, Math.round((currentFollowers / followerGoal) * 100)) : 0;
+  const pctProjected = followerGoal > 0 ? Math.min(100, Math.round((projectedTotal / followerGoal) * 100)) : 0;
+  const weeks = parseInt(document.getElementById('weeks-select').value);
+  const weeksToGoal = projectedFollows > 0 ? Math.ceil((followerGap / projectedFollows) * weeks) : '∞';
+  const reelsCount = plan.formatCounts['IG reel'] || 0;
+  const totalStories = plan.stories.reduce((s, d) => s + d.items.length, 0);
+
+  return `<div class="growth-panel">
+    <div class="growth-header">
+      <h2>Road to ${fmt(followerGoal)} Followers</h2>
+      <div class="growth-sub">${fmt(currentFollowers)} now → ${fmt(projectedTotal)} projected · ${weeks}-week plan</div>
+    </div>
+    <div class="growth-bar-wrap">
+      <div class="growth-bar">
+        <div class="fill" style="width:${pctProjected}%" data-pct="${pctProjected}%"></div>
+      </div>
+      <div class="milestones">
+        <span><span class="milestone-dot" style="background:var(--text-dim)"></span> ${fmt(currentFollowers)} now (${pctToGoal}%)</span>
+        <span><span class="milestone-dot" style="background:var(--cyan)"></span> ${fmt(projectedTotal)} projected (${pctProjected}%)</span>
+        <span><span class="milestone-dot" style="background:var(--green)"></span> ${fmt(followerGoal)} goal</span>
+      </div>
+    </div>
+    <div class="growth-stats">
+      <div class="growth-stat"><div class="gs-label">Gap to close</div><div class="gs-val" style="color:var(--amber)">${fmt(followerGap)}</div></div>
+      <div class="growth-stat"><div class="gs-label">Projected reach</div><div class="gs-val" style="color:var(--cyan)">${fmt(projectedReach)}</div></div>
+      <div class="growth-stat"><div class="gs-label">Est. new follows</div><div class="gs-val" style="color:var(--green)">+${fmt(projectedFollows)}</div></div>
+      <div class="growth-stat"><div class="gs-label">Weeks to goal</div><div class="gs-val">${weeksToGoal}</div></div>
+      <div class="growth-stat"><div class="gs-label">Total posts</div><div class="gs-val" style="color:var(--blue)">${plan.posts.length}</div></div>
+      <div class="growth-stat"><div class="gs-label">Reels (growth engine)</div><div class="gs-val" style="color:var(--purple)">${reelsCount}</div></div>
+      <div class="growth-stat"><div class="gs-label">Total stories</div><div class="gs-val" style="color:var(--amber)">${fmt(totalStories)}</div></div>
+      <div class="growth-stat"><div class="gs-label">Daily cadence</div><div class="gs-val">1 post + 5 stories</div></div>
+    </div>
+  </div>`;
+}
+
+function renderStrategy(analysis, plan) {
+  const rc = plan.formatCounts['IG reel'] || 0;
+  const ic = plan.formatCounts['IG image'] || 0;
+  const cc = plan.formatCounts['IG carousel'] || 0;
+  const total = rc + ic + cc;
+  const rPct = total ? Math.round((rc / total) * 100) : 0;
+  const iPct = total ? Math.round((ic / total) * 100) : 0;
+  const cPct = total ? Math.round((cc / total) * 100) : 0;
+
+  return `<div class="strategy-callout">
+    <h3>Growth Strategy — Reaching 10k</h3>
+    <div class="strategy-grid">
+      <div class="strat-item">
+        <div class="si-title">Daily Posting (1 post/day min)</div>
+        <div class="si-body">Consistency is the #1 factor for organic growth. Every single day gets a post — no gaps. Algorithm rewards daily activity with higher distribution.</div>
+      </div>
+      <div class="strat-item">
+        <div class="si-title">Reels-Heavy Mix (${rPct}% reels)</div>
+        <div class="si-body"><strong>${rc} reels</strong> out of ${total} posts. Reels get <strong>2-3x the distribution</strong> of static posts. Each reel is designed with a scroll-stopping hook in the first 1.5 seconds.</div>
+      </div>
+      <div class="strat-item">
+        <div class="si-title">5 Stories Every Day</div>
+        <div class="si-body">Stories keep you at the top of followers' feeds. <strong>3-5 daily stories</strong> with polls, countdowns, DM prompts, and event push. Stories → profile visits → follows.</div>
+      </div>
+      <div class="strat-item">
+        <div class="si-title">Share-Optimized Images (${iPct}%)</div>
+        <div class="si-body"><strong>${ic} images</strong> — your images get <strong>${fmt(Math.round(analysis?.typeStats?.['IG image']?.avg_shares || 0))} avg shares</strong> vs ${fmt(Math.round(analysis?.typeStats?.['IG reel']?.avg_shares || 0))} for reels. Share-bait images drive new audience reach at scale.</div>
+      </div>
+      <div class="strat-item">
+        <div class="si-title">Event Promo Ramp (11 touches)</div>
+        <div class="si-body">Each event gets an <strong>11-post promo sequence</strong> from T-21 to T+3. Reels dominate the ramp. Every promo post also gets a story amplification the same day.</div>
+      </div>
+      <div class="strat-item">
+        <div class="si-title">Carousel Recaps (${cPct}%)</div>
+        <div class="si-body"><strong>${cc} carousels</strong> for event photo dumps and guides. Carousel swipe depth signals quality to the algorithm and drives saves.</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderKPIs(analysis, plan, followerGoal, currentFollowers) {
+  const eventPromo = plan.posts.filter(p => p.category === 'event-promo').length;
+  const organic = plan.posts.filter(p => p.category === 'organic-growth').length;
+  const reels = plan.formatCounts['IG reel'] || 0;
+  const images = plan.formatCounts['IG image'] || 0;
+  const carousels = plan.formatCounts['IG carousel'] || 0;
+  const totalStories = plan.stories.reduce((s, d) => s + d.items.length, 0);
+
+  return `<div class="stats-row">
+    <div class="stat-card"><div class="label">Upcoming events</div><div class="value">${plan.upcoming.length}</div><div class="sub">in horizon</div></div>
+    <div class="stat-card"><div class="label">Total posts</div><div class="value blue">${plan.posts.length}</div><div class="sub">${eventPromo} promo · ${organic} organic</div></div>
+    <div class="stat-card"><div class="label">Reels</div><div class="value purple">${reels}</div><div class="sub">growth engine</div></div>
+    <div class="stat-card"><div class="label">Images</div><div class="value cyan">${images}</div><div class="sub">share magnets</div></div>
+    <div class="stat-card"><div class="label">Carousels</div><div class="value pink">${carousels}</div><div class="sub">recaps & guides</div></div>
+    <div class="stat-card"><div class="label">Stories</div><div class="value amber">${fmt(totalStories)}</div><div class="sub">${plan.stories.length} days covered</div></div>
+    <div class="stat-card"><div class="label">Best format</div><div class="value green">${(analysis.bestReachFormat || '').replace('IG ', '') || '—'}</div><div class="sub">${fmt(Math.round(analysis.typeStats[analysis.bestReachFormat]?.avg_reach || 0))} avg reach</div></div>
+    <div class="stat-card"><div class="label">Best day</div><div class="value amber">${analysis.bestDays[0]?.name || '—'}</div><div class="sub">${fmt(analysis.bestDays[0]?.avg_reach || 0)} avg reach</div></div>
+  </div>`;
+}
+
+function renderInsights(analysis) {
+  const fmtPct = v => Math.round((v || 0) * 100) + '%';
+  const mix = analysis.formatMix || {};
+  const mixLine = ['IG image', 'IG reel', 'IG carousel']
+    .filter(t => mix[t] != null)
+    .map(t => `<strong>${fmtPct(mix[t])}</strong> ${t.replace('IG ', '')}`)
+    .join(' · ');
+  const bestType = analysis.bestReachFormat;
+  const worstType = Object.entries(analysis.typeStats).sort((a, b) => a[1].avg_reach - b[1].avg_reach)[0]?.[0];
+  const bestReach = Math.round(analysis.typeStats[bestType]?.avg_reach || 0);
+  const worstReach = Math.round(analysis.typeStats[worstType]?.avg_reach || 0);
+  const gap = worstReach > 0 ? Math.round((bestReach / worstReach) * 10) / 10 : null;
+
+  return `<div class="insight-grid">
+    <div class="insight-card">
+      <div class="ic-label">Your historical format mix (by reach)</div>
+      <div class="ic-val">${mixLine || '—'}</div>
+      <div class="ic-sub">This calendar overrides with a <strong>reels-heavy mix</strong> to maximize organic distribution and new follower acquisition.</div>
+    </div>
+    <div class="insight-card">
+      <div class="ic-label">Leading format</div>
+      <div class="ic-val">${(bestType || '').replace('IG ', '')} — ${fmt(bestReach)} avg reach</div>
+      <div class="ic-sub">${gap ? `<strong>${gap}×</strong> the reach of ${(worstType || '').replace('IG ', '')} (${fmt(worstReach)}).` : ''} Images dominate reach; reels dominate distribution. Calendar uses both strategically.</div>
+    </div>
+    <div class="insight-card">
+      <div class="ic-label">Top posting days</div>
+      <div class="ic-val">${analysis.bestDays.map(d => d.name).join(' · ') || '—'}</div>
+      <div class="ic-sub">With daily posting, every day is covered — but <strong>event promos land on top-performing days</strong>.</div>
+    </div>
+    <div class="insight-card">
+      <div class="ic-label">Top posting hours</div>
+      <div class="ic-val">${analysis.bestHours.map(h => h.hour + ':00').join(' · ') || '—'}</div>
+      <div class="ic-sub">Posts scheduled at peak hours. Stories spaced across 9AM, 12PM, 3PM, 6PM, 9PM for all-day visibility.</div>
+    </div>
+  </div>`;
+}
+
+function renderEventPromos(plan) {
+  if (!plan.upcoming.length) {
+    return `<div class="panel"><h3>No upcoming events in horizon</h3><div class="panel-sub">Create an event in Eventbrite and refresh — it'll auto-populate the promo ramp here.</div></div>`;
+  }
+  return plan.upcoming.map(ev => {
+    const promoPosts = plan.posts.filter(p => p.event && p.event.id === ev.id).sort((a, b) => a.scheduled_at - b.scheduled_at);
+    const soldPct = ev.tickets_total ? Math.min(100, Math.round((ev.tickets_sold / ev.tickets_total) * 100)) : null;
+    const barClass = (soldPct != null && soldPct >= 80) ? 'warn' : '';
+    const eventDate = new Date(ev.start);
+    const daysOut = daysBetween(new Date(), eventDate);
+    const cityStr = [ev.venue?.city, ev.venue?.region].filter(Boolean).join(', ');
+
+    const slots = promoPosts.map(p => {
+      const typeKey = (p.type || '').replace('IG ', '').toLowerCase();
+      const dd = new Date(p.scheduled_at);
+      const dayLabel = fmtDateFull(dd) + ' · ' + dd.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      return `<div class="promo-slot">
+        <div class="ps-date">${dayLabel}</div>
+        <div class="ps-concept">${escHtml(p.concept)}</div>
+        <span class="ps-type ${typeKey}">${typeKey}</span>
+        <div class="ps-proj">Proj. reach: ${fmt(Math.round(p.projected_reach))}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="event-card">
+      <div class="ec-header">
+        <div style="flex:1 1 280px">
+          <div class="ec-name">${escHtml(ev.name)}</div>
+          <div class="ec-meta">
+            <span>📅 ${fmtDateFull(eventDate)}</span>
+            <span>⏱ ${daysOut >= 0 ? `in ${daysOut} days` : 'past'}</span>
+            ${cityStr ? `<span>📍 ${escHtml(cityStr)}</span>` : ''}
+            ${ev.url ? `<span><a href="${escHtml(ev.url)}" target="_blank">↗ Eventbrite</a></span>` : ''}
+          </div>
+        </div>
+        <div class="ec-tickets">
+          ${ev.tickets_sold != null ? `<div class="tix"><strong>${fmt(ev.tickets_sold)}${ev.tickets_total ? '/' + fmt(ev.tickets_total) : ''}</strong><br>sold${soldPct != null ? `<div class="progress-bar"><div class="fill ${barClass}" style="width:${soldPct}%"></div></div>` : ''}</div>` : ''}
+        </div>
+      </div>
+      ${slots ? `<div class="promo-timeline">${slots}</div>` : '<div class="muted" style="font-size:12px">No promo posts in window.</div>'}
+    </div>`;
+  }).join('');
+}
+
+function renderStories(plan, showDays = 14) {
+  const storiesToShow = plan.stories.slice(0, showDays);
+  return storiesToShow.map(day => {
+    const themeLabels = { 'event-countdown': '🔥 Event Countdown', 'event-day': '🎉 Event Day', 'event-recap': '📸 Event Recap', 'growth-push': '📈 Growth Push', 'community': '💬 Community' };
+    return `<div class="stories-day">
+      <div class="sd-header">
+        <div class="sd-date">${fmtDateFull(day.date)}${day.closestEvent ? ` · <span style="color:var(--pink)">${escHtml(day.closestEvent.name).slice(0, 30)}</span>` : ''}</div>
+        <div class="sd-count">${themeLabels[day.theme] || day.theme} · ${day.items.length} stories</div>
+      </div>
+      <div class="story-chips">
+        ${day.items.map(item => `<div class="story-chip"><div class="sc-time">${item.time}</div><div class="sc-idea">${escHtml(item.idea)}</div></div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderWeekGrid(plan) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const weeks = parseInt(document.getElementById('weeks-select').value);
+  const rows = [];
+  for (let w = 0; w < weeks; w++) {
+    const weekStart = new Date(today);
+    weekStart.setDate(weekStart.getDate() + w * 7 - today.getDay());
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
+    rows.push({ start: weekStart, end: weekEnd });
+  }
+  const header = `<div class="wg-header"></div>` +
+    ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => `<div class="wg-header">${d}</div>`).join('');
+
+  const body = rows.map((row, wi) => {
+    const label = `<div class="wg-row-label">Week ${wi + 1}<div class="week-dates">${fmtDate(row.start)} – ${fmtDate(row.end)}</div></div>`;
+    const cells = Array.from({ length: 7 }, (_, di) => {
+      const cellDate = new Date(row.start); cellDate.setDate(cellDate.getDate() + di);
+      const cellKey = cellDate.toDateString();
+      const dayPosts = plan.posts.filter(p => p.scheduled_at.toDateString() === cellKey);
+      const dayEvents = plan.upcoming.filter(e => new Date(e.start).toDateString() === cellKey);
+      const dayStory = plan.stories.find(s => s.date.toDateString() === cellKey);
+      const isEventDay = dayEvents.length > 0;
+      const chips = dayPosts.map(p => {
+        const tk = (p.type || '').replace('IG ', '').toLowerCase();
+        return `<div class="wg-chip ${tk}" title="${escHtml(p.concept)}">${tk.slice(0,3)} · ${escHtml(p.concept).slice(0, 16)}</div>`;
+      }).join('');
+      const storyChip = dayStory ? `<div class="wg-chip story" title="${dayStory.items.length} stories">${dayStory.items.length} stories</div>` : '';
+      const eventLine = isEventDay ? `<div class="wg-event">🎉 ${escHtml(dayEvents[0].name).slice(0, 16)}</div>` : '';
+      return `<div class="wg-cell${isEventDay ? ' event-day' : ''}">
+        <div class="wg-day">${cellDate.getDate()}</div>
+        ${eventLine}${chips}${storyChip}
+      </div>`;
+    }).join('');
+    return label + cells;
+  }).join('');
+  return `<div class="week-grid">${header}${body}</div>`;
+}
+
+function renderPostTable(plan) {
+  const rows = plan.posts.map(p => {
+    const tk = (p.type || '').replace('IG ', '').toLowerCase();
+    return `<tr>
+      <td>${fmtDateFull(p.scheduled_at)}</td>
+      <td>${p.scheduled_at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</td>
+      <td><span class="pill pill-${tk}">${tk}</span></td>
+      <td>${escHtml(p.concept)}</td>
+      <td style="font-size:11px;color:var(--text-dim)">${escHtml(p.hook || '')}</td>
+      <td>${p.event ? `<a href="${escHtml(p.event.url || '#')}" target="_blank" style="font-size:11px">${escHtml(p.event.name).slice(0,25)}</a>` : '<span class="muted">Organic</span>'}</td>
+      <td class="num">${fmt(Math.round(p.projected_reach))}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="posts-table" style="max-height:600px;overflow-y:auto"><table>
+    <thead><tr>
+      <th>Date</th><th>Time</th><th>Type</th><th>Concept</th><th>Hook</th><th>Tied to</th><th class="num">Proj. reach</th>
+    </tr></thead>
+    <tbody>${rows || '<tr><td colspan="7" class="muted" style="text-align:center;padding:24px">No posts planned.</td></tr>'}</tbody>
+  </table></div>`;
+}
+
+function renderFormatChart(plan) {
+  return `<div class="two-col">
+    <div class="panel">
+      <h3>Format Distribution</h3>
+      <div class="panel-sub">Reels-heavy for maximum organic growth</div>
+      <div class="chart-wrap"><canvas id="formatChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h3>Weekly Post Volume</h3>
+      <div class="panel-sub">Consistent daily output across the horizon</div>
+      <div class="chart-wrap"><canvas id="weeklyVolChart"></canvas></div>
+    </div>
+  </div>`;
+}
+
+function drawCharts(plan) {
+  Chart.defaults.color = '#888';
+  Chart.defaults.borderColor = '#2A2A2A';
+  Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, Inter, sans-serif";
+
+  // Format pie
+  const fc = plan.formatCounts;
+  new Chart(document.getElementById('formatChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Reels', 'Images', 'Carousels'],
+      datasets: [{ data: [fc['IG reel']||0, fc['IG image']||0, fc['IG carousel']||0],
+        backgroundColor: ['#A78BFA', '#60A5FA', '#EC4899'], borderColor: '#141414', borderWidth: 2 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 }, padding: 12 } } } }
+  });
+
+  // Weekly volume bar
+  const weeks = parseInt(document.getElementById('weeks-select').value);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const weekLabels = []; const weekReels = []; const weekImages = []; const weekCarousels = [];
+  for (let w = 0; w < weeks; w++) {
+    const ws = new Date(today); ws.setDate(ws.getDate() + w * 7);
+    const we = new Date(ws); we.setDate(we.getDate() + 6);
+    weekLabels.push(`W${w+1}`);
+    const wp = plan.posts.filter(p => p.scheduled_at >= ws && p.scheduled_at <= we);
+    weekReels.push(wp.filter(p=>p.type==='IG reel').length);
+    weekImages.push(wp.filter(p=>p.type==='IG image').length);
+    weekCarousels.push(wp.filter(p=>p.type==='IG carousel').length);
+  }
+  new Chart(document.getElementById('weeklyVolChart'), {
+    type: 'bar',
+    data: {
+      labels: weekLabels,
+      datasets: [
+        { label: 'Reels', data: weekReels, backgroundColor: 'rgba(167,139,250,0.8)' },
+        { label: 'Images', data: weekImages, backgroundColor: 'rgba(96,165,250,0.8)' },
+        { label: 'Carousels', data: weekCarousels, backgroundColor: 'rgba(236,72,153,0.8)' },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { boxWidth: 10, font: { size: 11 } } } },
+      scales: {
+        x: { stacked: true, ticks: { font: { size: 10 } }, grid: { color: '#1F1F1F' } },
+        y: { stacked: true, ticks: { font: { size: 10 } }, grid: { color: '#1F1F1F' } }
+      }
+    }
+  });
+}
+
+// ── Main render ──
+function rebuild() {
+  if (!STATE.analysis) return;
+  const weeks = parseInt(document.getElementById('weeks-select').value);
+  const postsPerDay = parseInt(document.getElementById('posts-per-day').value);
+  const storiesPerDay = parseInt(document.getElementById('stories-per-day').value);
+  const followerGoal = parseInt(document.getElementById('goal-followers').value);
+  const currentFollowers = parseInt(document.getElementById('current-followers').value);
+
+  STATE.plan = buildPlan(STATE.analysis, STATE.events, { weeks, postsPerDay, storiesPerDay });
+
+  const slot = document.getElementById('content-slot');
+  slot.innerHTML = `
+    ${renderGrowthTracker(STATE.analysis, STATE.plan, followerGoal, currentFollowers)}
+    ${renderStrategy(STATE.analysis, STATE.plan)}
+    ${renderKPIs(STATE.analysis, STATE.plan, followerGoal, currentFollowers)}
+    ${renderInsights(STATE.analysis)}
+    ${renderFormatChart(STATE.plan)}
+    <div class="section-header"><h2>Event promo ramps</h2><span class="hint">11-touch sequence per event — auto-generated from Eventbrite</span></div>
+    ${renderEventPromos(STATE.plan)}
+    <div class="section-header"><h2>Daily Stories Plan (next 14 days)</h2><span class="hint">${parseInt(document.getElementById('stories-per-day').value)} stories/day · polls, countdowns, DM prompts, event push</span></div>
+    ${renderStories(STATE.plan, 14)}
+    <div class="section-header"><h2>Weekly grid</h2><span class="hint">Posts + stories · event days highlighted</span></div>
+    ${renderWeekGrid(STATE.plan)}
+    <div class="section-header"><h2>Full schedule</h2><span class="hint">${STATE.plan.posts.length} posts · every day covered</span></div>
+    ${renderPostTable(STATE.plan)}
+  `;
+  drawCharts(STATE.plan);
+  renderHeader({ fetched_at: new Date().toISOString() }, STATE.events, STATE.plan);
+}
+
+function renderHeader(igPayload, events, plan) {
+  const sub = document.getElementById('live-subtitle');
+  const totalStories = plan.stories.reduce((s, d) => s + d.items.length, 0);
+  sub.textContent = `${events.length} events · ${plan.upcoming.length} upcoming · ${plan.posts.length} posts + ${fmt(totalStories)} stories planned · daily posting active`;
+}
+
+async function loadAll(forceFresh) {
+  const btn = document.getElementById('refresh-btn');
+  btn.disabled = true; btn.textContent = '… Loading';
+  clearBanner();
+  document.getElementById('content-slot').innerHTML = `<div class="loading"><span class="spinner"></span> Loading Instagram + Eventbrite data…</div>`;
+
+  let igPayload, events;
+  try {
+    [igPayload, events] = await Promise.all([fetchIG(forceFresh), fetchEvents()]);
+  } catch (e) {
+    console.error(e);
+    setDotState('err');
+    const msg = e.message || String(e);
+    if (msg.toLowerCase().includes('instagram')) showBanner('err', `✗ ${escHtml(msg)}. Check <code>IG_ACCESS_TOKEN</code> in <code>.env</code>.`);
+    else if (msg.toLowerCase().includes('eventbrite')) showBanner('err', `✗ ${escHtml(msg)}. Check your Eventbrite token.`);
+    else if (msg.toLowerCase().includes('fetch')) showBanner('err', `✗ Can't reach the proxy server. Run <code>npm start</code> in eventbrite-proxy, then refresh.`);
+    else showBanner('err', `✗ ${escHtml(msg)}`);
+    document.getElementById('content-slot').innerHTML = '';
+    btn.disabled = false; btn.textContent = '↻ Refresh';
+    return;
+  }
+
+  STATE.igPosts = igPayload.posts || [];
+  STATE.events = events || [];
+  STATE.analysis = analyzePerformance(STATE.igPosts);
+
+  if (igPayload.account?.followers_count && !document.getElementById('current-followers').dataset.touched) {
+    document.getElementById('current-followers').value = igPayload.account.followers_count;
+  }
+
+  if (!STATE.analysis || STATE.igPosts.length === 0) {
+    setDotState('warn');
+    showBanner('warn', '⚠ No IG posts returned — using fallback defaults. Add data to improve recommendations.');
+    STATE.analysis = {
+      typeStats: {}, dowAvg: [], hourAvg: [],
+      bestDays: [{ dow: 5, name: 'Fri', avg_reach: 0 }, { dow: 1, name: 'Mon', avg_reach: 0 }, { dow: 4, name: 'Thu', avg_reach: 0 }],
+      bestHours: [{ hour: 19, avg_reach: 0 }, { hour: 9, avg_reach: 0 }, { hour: 21, avg_reach: 0 }],
+      bestReachFormat: 'IG image', bestShareFormat: 'IG reel',
+      totals: {}, avgReach: 3000,
+      formatMix: { 'IG image': 0.35, 'IG reel': 0.5, 'IG carousel': 0.15 },
+      sampleSize: 0,
+    };
+  } else {
+    setDotState('ok');
+  }
+
+  rebuild();
+  btn.disabled = false; btn.textContent = '↻ Refresh';
+}
+
+['current-followers', 'goal-followers'].forEach(id => {
+  document.getElementById(id).addEventListener('input', e => { e.target.dataset.touched = '1'; });
+});
+
+// ── Google Sheets Sync ──
+async function syncToSheets() {
+  if (!STATE.plan || !STATE.plan.posts.length) {
+    showBanner('warn', '⚠ No plan to sync — load data first.');
+    return;
+  }
+  const btn = document.getElementById('sync-sheets-btn');
+  const orig = btn.textContent;
+  btn.textContent = '⟳ Syncing…'; btn.disabled = true;
+
+  const followerGoal = parseInt(document.getElementById('goal-followers').value);
+  const currentFollowers = parseInt(document.getElementById('current-followers').value);
+  const weeks = parseInt(document.getElementById('weeks-select').value);
+  const storiesPerDay = parseInt(document.getElementById('stories-per-day').value);
+  const followerGap = Math.max(0, followerGoal - currentFollowers);
+  const projectedReach = Math.round(STATE.plan.posts.reduce((s, p) => s + p.projected_reach, 0));
+  const reachPerFollow = 250;
+  const projectedFollows = Math.round(projectedReach / reachPerFollow);
+  const weeksToGoal = projectedFollows > 0 ? Math.ceil((followerGap / projectedFollows) * weeks) : '∞';
+
+  const posts = STATE.plan.posts.map(p => {
+    const d = p.scheduled_at;
+    return {
+      date: d.toISOString().slice(0, 10),
+      day: dayName(d.getDay()),
+      time: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+      type: p.type || '',
+      category: p.category || '',
+      concept: p.concept || '',
+      hook: p.hook || '',
+      event_name: p.event?.name || '',
+      event_date: p.event ? new Date(p.event.start).toISOString().slice(0, 10) : '',
+      projected_reach: Math.round(p.projected_reach),
+      status: 'Planned',
+      notes: '',
+    };
+  });
+
+  const meta = {
+    current_followers: currentFollowers,
+    follower_goal: followerGoal,
+    gap: followerGap,
+    total_posts: STATE.plan.posts.length,
+    reels: STATE.plan.formatCounts['IG reel'] || 0,
+    images: STATE.plan.formatCounts['IG image'] || 0,
+    carousels: STATE.plan.formatCounts['IG carousel'] || 0,
+    stories_per_day: storiesPerDay,
+    projected_reach: projectedReach,
+    est_new_follows: projectedFollows,
+    weeks_to_goal: weeksToGoal,
+    horizon_weeks: weeks,
+  };
+
+  try {
+    const r = await fetch(`${PROXY}/api/sheets/calendar-sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ posts, meta }),
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    btn.textContent = '✓ Synced';
+    btn.style.background = 'rgba(34,197,94,0.15)'; btn.style.color = 'var(--green)';
+    console.log('Sheets sync:', d);
+    // Store last sync time
+    localStorage.setItem('calendar_last_sync', new Date().toISOString());
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; btn.style.background = ''; btn.style.color = ''; }, 3000);
+  } catch (e) {
+    console.error('Sheets sync failed:', e);
+    btn.textContent = '✗ Failed';
+    btn.style.background = 'rgba(239,68,68,0.15)'; btn.style.color = 'var(--red)';
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; btn.style.background = ''; btn.style.color = ''; }, 4000);
+  }
+}
+
+// Auto-sync after every data refresh (piggybacks on loadAll)
+let autoSyncEnabled = true;
+async function autoSyncAfterLoad() {
+  if (!autoSyncEnabled || !STATE.plan) return;
+  // Small delay to let the UI render first
+  await new Promise(r => setTimeout(r, 2000));
+  console.log('Auto-syncing calendar to Sheets…');
+  await syncToSheets();
+}
+
+loadAll(false).then(() => autoSyncAfterLoad());
+setInterval(() => loadAll(false).then(() => autoSyncAfterLoad()), 15 * 60 * 1000);
+</script>
+</body>
+</html>
