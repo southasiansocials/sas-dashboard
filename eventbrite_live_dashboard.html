@@ -419,8 +419,13 @@ select:focus, input[type="text"]:focus { border-color: var(--border-focus); }
 </div>
 
 <script>
+// Resolve API base URL:
+//   1) ?api=... query param (explicit override)
+//   2) localhost / file:// → local dev proxy on :3001
+//   3) otherwise → production HTTPS proxy
 const _qApi = new URLSearchParams(location.search).get('api');
-const PROXY = _qApi || (location.protocol.startsWith('http') ? '' : 'http://localhost:3001');
+const _isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:';
+const PROXY = _qApi || (_isLocal ? 'http://localhost:3001' : 'https://api.southasiansocials.com');
 let allEvents = [];
 let people = JSON.parse(localStorage.getItem('sas_people') || '{}');
 let eventFinancials = JSON.parse(localStorage.getItem('sas_financials') || '{}');
@@ -505,7 +510,7 @@ async function checkProxy() {
     const d = await r.json();
     if (d.ok) {
       document.getElementById('status-dot').className = 'status-dot dot-live';
-      document.getElementById('status-text').textContent = 'Proxy connected — localhost:3001';
+      document.getElementById('status-text').textContent = `Proxy connected — ${PROXY ? new URL(PROXY).host : 'same origin'}`;
       return true;
     }
   } catch(e) {}

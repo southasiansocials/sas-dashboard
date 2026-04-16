@@ -412,10 +412,13 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
 </div>
 
 <script>
-// If opened as file:// the relative paths won't resolve to the proxy.
-// If served FROM the proxy (http://localhost:3001/ig_live_dashboard.html) use relative.
+// Resolve API base URL:
+//   1) ?api=... query param (explicit override)
+//   2) localhost / file:// → local dev proxy on :3001
+//   3) otherwise → production HTTPS proxy
 const _qApi = new URLSearchParams(location.search).get('api');
-const PROXY = _qApi || (location.protocol.startsWith('http') ? '' : 'http://localhost:3001');
+const _isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:';
+const PROXY = _qApi || (_isLocal ? 'http://localhost:3001' : 'https://api.southasiansocials.com');
 
 // ── Formatting helpers ────────────────────────────────────────
 const fmt = n => (n ?? 0).toLocaleString('en-US');

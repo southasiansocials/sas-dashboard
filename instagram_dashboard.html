@@ -662,8 +662,10 @@ async function fetchLive() {
   const orig = btn.textContent;
   btn.textContent = '⟳ Fetching...'; btn.disabled = true;
   try {
-    // Default to same host; override with ?api=http://localhost:3001 if embedding elsewhere
-    const apiBase = new URL(location.href).searchParams.get('api') || ('http://localhost:3001');
+    // Resolve API base: ?api=... query param wins; otherwise local dev → localhost, prod → HTTPS proxy
+    const _qApi = new URL(location.href).searchParams.get('api');
+    const _isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:';
+    const apiBase = _qApi || (_isLocal ? 'http://localhost:3001' : 'https://api.southasiansocials.com');
     const days = 90;
     const r = await fetch(`${apiBase}/api/ig/posts?days=${days}&fresh=1`);
     const d = await r.json();
