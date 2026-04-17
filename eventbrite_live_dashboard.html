@@ -1,3 +1,12 @@
+<script>
+(function(){
+  // Client-side access gate — skipped on localhost/file:// for dev.
+  var isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:';
+  if (!isLocal && sessionStorage.getItem('sas_dashboard_unlocked') !== '1') {
+    window.location.replace('./');
+  }
+})();
+</script>
 
 <style>
 /* ── Dark theme design tokens ── */

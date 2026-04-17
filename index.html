@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <title>South Asian Socials Dashboard</title>
   <style>
-    body { font-family: -apple-system, sans-serif; background: #0C0C0C; color: #F0F0F0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-    .hub { max-width: 600px; text-align: center; }
+    body { font-family: -apple-system, sans-serif; background: #0C0C0C; color: #F0F0F0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+    .hub, .login { max-width: 600px; width: 100%; text-align: center; }
     h1 { font-size: 22px; margin-bottom: 8px; }
     p { color: #888; font-size: 13px; margin-bottom: 24px; }
     .links { display: flex; flex-direction: column; gap: 8px; }
@@ -17,23 +17,120 @@
     .b-purple { background: rgba(167,139,250,0.15); color: #A78BFA; }
     .b-amber { background: rgba(245,158,11,0.15); color: #F59E0B; }
     .b-pink { background: rgba(236,72,153,0.15); color: #EC4899; }
+
+    /* Login card */
+    .login { max-width: 380px; background: #141414; border: 1px solid #2A2A2A; border-radius: 12px; padding: 32px 28px; text-align: left; }
+    .login h1 { text-align: center; margin-bottom: 6px; }
+    .login .sub { color: #888; font-size: 12px; text-align: center; margin-bottom: 24px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .field input {
+      width: 100%; padding: 11px 13px; font-size: 14px;
+      background: #0C0C0C; border: 1px solid #2A2A2A; border-radius: 6px;
+      color: #F0F0F0; font-family: inherit; outline: none; transition: border-color 0.12s;
+    }
+    .field input:focus { border-color: #60A5FA; }
+    .btn {
+      width: 100%; padding: 12px; font-size: 14px; font-weight: 600;
+      background: #60A5FA; color: #000; border: 0; border-radius: 6px;
+      cursor: pointer; margin-top: 8px; transition: background 0.12s;
+    }
+    .btn:hover { background: #7ab4fc; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .err { color: #EF4444; font-size: 12px; margin-top: 12px; text-align: center; min-height: 16px; }
+    .logout-row { margin-top: 16px; text-align: center; }
+    .logout-row button {
+      background: transparent; border: 0; color: #666; font-size: 11px;
+      cursor: pointer; text-decoration: underline;
+    }
+    .logout-row button:hover { color: #F0F0F0; }
   </style>
   <script>
+    // --- Client-side access gate ---
+    // Note: this keeps casual viewers out. Anyone with DevTools can bypass by setting
+    // sessionStorage. Password is stored as a SHA-256 hash of "username:password",
+    // so the plaintext isn't in the page source.
+    const AUTH_HASH = '62da406787986fd98b53734f5236a8b3003dd3595dd334c7dfe06436b0c9d778';
+    const UNLOCK_KEY = 'sas_dashboard_unlocked';
+
+    async function sha256Hex(text) {
+      const buf = new TextEncoder().encode(text);
+      const digest = await crypto.subtle.digest('SHA-256', buf);
+      return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    function isUnlocked() {
+      return sessionStorage.getItem(UNLOCK_KEY) === '1';
+    }
+
     // Forward any ?api=... override to the linked dashboards (useful for dev against a non-prod backend).
-    // In normal use, the dashboards default to https://api.southasiansocials.com on their own.
     const api = new URLSearchParams(location.search).get('api');
     function makeUrl(page) {
       return api ? `${page}?api=${encodeURIComponent(api)}` : page;
     }
+
+    function showHub() {
+      document.getElementById('login-view').style.display = 'none';
+      document.getElementById('hub-view').style.display = 'block';
+      document.querySelectorAll('[data-page]').forEach(el => { el.href = makeUrl(el.dataset.page); });
+    }
+    function showLogin() {
+      document.getElementById('hub-view').style.display = 'none';
+      document.getElementById('login-view').style.display = 'block';
+      setTimeout(() => document.getElementById('username').focus(), 50);
+    }
+
+    async function handleSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('login-btn');
+      const err = document.getElementById('login-err');
+      const user = document.getElementById('username').value.trim();
+      const pass = document.getElementById('password').value;
+      err.textContent = '';
+      btn.disabled = true; btn.textContent = '…';
+      const h = await sha256Hex(user + ':' + pass);
+      if (h === AUTH_HASH) {
+        sessionStorage.setItem(UNLOCK_KEY, '1');
+        showHub();
+      } else {
+        err.textContent = 'Incorrect username or password.';
+        document.getElementById('password').value = '';
+        document.getElementById('password').focus();
+      }
+      btn.disabled = false; btn.textContent = 'Sign in';
+    }
+
+    function logout() {
+      sessionStorage.removeItem(UNLOCK_KEY);
+      showLogin();
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
-      document.querySelectorAll('[data-page]').forEach(el => {
-        el.href = makeUrl(el.dataset.page);
-      });
+      document.getElementById('login-form').addEventListener('submit', handleSubmit);
+      if (isUnlocked()) showHub(); else showLogin();
     });
   </script>
 </head>
 <body>
-  <div class="hub">
+  <!-- Login view -->
+  <div class="login" id="login-view" style="display:none">
+    <h1>South Asian Socials</h1>
+    <div class="sub">Sign in to view the dashboards</div>
+    <form id="login-form">
+      <div class="field">
+        <label for="username">Username</label>
+        <input type="text" id="username" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn" id="login-btn">Sign in</button>
+      <div class="err" id="login-err"></div>
+    </form>
+  </div>
+
+  <!-- Hub view -->
+  <div class="hub" id="hub-view" style="display:none">
     <h1>South Asian Socials</h1>
     <p>Dashboard Hub — pick a view</p>
     <div class="links">
@@ -42,8 +139,8 @@
       <a data-page="instagram_dashboard.html" href="#">Instagram Overview <span class="badge b-blue">INSIGHTS</span></a>
       <a data-page="ig_live_dashboard.html" href="#">IG Live Dashboard <span class="badge b-green">LIVE</span></a>
       <a data-page="ig_competitors.html" href="#">Competitor Intel <span class="badge b-pink">COMPARE</span></a>
-      <a data-page="eventbrite_live_dashboard.html" href="#">Events Dashboard <span class="badge b-amber">EVENTS</span></a>
     </div>
+    <div class="logout-row"><button type="button" onclick="logout()">Sign out</button></div>
   </div>
 </body>
 </html>
