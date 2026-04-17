@@ -318,6 +318,45 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
 .pill-carousel { background: rgba(236,72,153,0.15); color: var(--pink); }
 .pill-story { background: rgba(245,158,11,0.15); color: var(--amber); }
 
+/* Expandable post-detail row */
+tbody tr.post-row { cursor: pointer; }
+tbody tr.post-row td:first-child::before {
+  content: '▸'; display: inline-block; width: 10px; color: var(--text-dim);
+  margin-right: 6px; transition: transform 0.12s;
+}
+tbody tr.post-row.open td:first-child::before { transform: rotate(90deg); color: var(--text); }
+tbody tr.post-detail { display: none; background: var(--bg-elevated); }
+tbody tr.post-detail.open { display: table-row; }
+tbody tr.post-detail td { padding: 0; border-bottom: 1px solid var(--border); }
+.detail-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 16px 18px; }
+.detail-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; }
+.detail-section .ds-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 8px; font-size: 10px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+}
+.detail-section .ds-body { font-size: 12px; color: var(--text); line-height: 1.55; white-space: pre-wrap; }
+.detail-section.wide { grid-column: 1 / -1; }
+.copy-btn {
+  font-size: 10px; padding: 3px 9px; border-radius: 99px;
+  background: var(--bg-input); border: 1px solid var(--border); color: var(--text-muted);
+  cursor: pointer; transition: all 0.12s;
+}
+.copy-btn:hover { color: var(--text); border-color: var(--border-focus); }
+.copy-btn.copied { background: rgba(34,197,94,0.15); color: var(--green); border-color: rgba(34,197,94,0.35); }
+.tag-chip {
+  display: inline-block; font-size: 11px; padding: 3px 8px; margin: 2px 3px 2px 0;
+  background: rgba(96,165,250,0.10); border: 1px solid rgba(96,165,250,0.25);
+  color: var(--blue); border-radius: 99px;
+}
+.tag-chip.live { background: rgba(34,197,94,0.10); border-color: rgba(34,197,94,0.35); color: var(--green); }
+.onscreen-box {
+  padding: 10px 12px; background: #000; border: 1px dashed var(--border-focus);
+  border-radius: var(--radius-sm); font-family: 'SF Mono', 'Menlo', monospace;
+  font-size: 13px; color: var(--accent); text-align: center;
+}
+@media (max-width: 900px) { .detail-wrap { grid-template-columns: 1fr; } }
+
 .muted { color: var(--text-muted); }
 .banner { padding: 12px 16px; border-radius: var(--radius); font-size: 12px; margin-bottom: 1rem; }
 .banner-err { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); color: var(--red); }
@@ -592,6 +631,143 @@ const CAROUSEL_IDEAS = [
   { concept: 'City recap — highlights from all events this month', hook: 'This month was something else' },
   { concept: '"What to expect" guide for first-timers', hook: 'Your guide to the mixer' },
 ];
+
+// ── Content-detail helpers (caption, hashtags, music, on-screen text) ──
+// Top-performing hashtags mined from the account's real IG data, rebuilt each refresh.
+// Until IG posts load, this stays empty and hashtagsFor() falls back to the curated base set.
+let TOP_HASHTAGS_LIVE = [];
+
+function mineTopHashtags(igPosts, topN = 10) {
+  const scores = {}, uses = {};
+  for (const p of igPosts || []) {
+    const eng = (p.like_count || 0) + (p.comments_count || 0);
+    const tags = (p.caption || '').match(/#[\p{L}\p{N}_]+/giu) || [];
+    const seen = new Set();
+    for (const raw of tags) {
+      const t = raw.toLowerCase();
+      if (seen.has(t)) continue; seen.add(t);
+      scores[t] = (scores[t] || 0) + eng;
+      uses[t] = (uses[t] || 0) + 1;
+    }
+  }
+  // Require 2+ uses to avoid one-off noise; rank by avg engagement per use.
+  return Object.keys(scores)
+    .filter(t => uses[t] >= 2 && t.length > 3)
+    .map(t => ({ tag: t, avg: scores[t] / uses[t], uses: uses[t] }))
+    .sort((a, b) => b.avg - a.avg)
+    .slice(0, topN)
+    .map(r => r.tag);
+}
+
+// Curated base hashtags (fallback + merge seed so we always fill the caption)
+const HASHTAG_BASE = {
+  'IG reel':    ['#southasiansingles', '#desimixer', '#desidating', '#southasianevents', '#singlesmixer', '#desisingles', '#southasianreel', '#desicommunity'],
+  'IG image':   ['#southasiansingles', '#desisingles', '#singlesmixer', '#desidating', '#moderndating', '#southasiancommunity'],
+  'IG carousel':['#eventrecap', '#southasiansingles', '#desimixer', '#southasiannightlife', '#singlesnight', '#southasiancommunity'],
+};
+const HASHTAG_PROMO = ['#singlesmixer', '#desidating', '#southasianevents', '#bringyoursinglefriend'];
+
+function hashtagsFor(post) {
+  const base = HASHTAG_BASE[post.type] || HASHTAG_BASE['IG reel'];
+  const tags = [];
+  // Live top performers first (marked separately in the UI)
+  for (const t of TOP_HASHTAGS_LIVE) tags.push({ tag: t, live: true });
+  // Static base
+  for (const t of base) tags.push({ tag: t, live: false });
+  // Event-specific
+  if (post.event) {
+    const city = (post.event.venue?.city || '').toLowerCase().replace(/\s+/g, '');
+    if (city) [`#${city}`, `#${city}events`, `#${city}singles`].forEach(t => tags.push({ tag: t, live: false }));
+    if (post.category === 'event-promo') HASHTAG_PROMO.forEach(t => tags.push({ tag: t, live: false }));
+  }
+  // Dedupe, cap at 15 (Instagram's effective limit is ~10-15)
+  const out = []; const seen = new Set();
+  for (const item of tags) {
+    const k = item.tag.toLowerCase();
+    if (seen.has(k)) continue; seen.add(k);
+    out.push(item);
+    if (out.length >= 15) break;
+  }
+  return out;
+}
+
+// Music suggestion rules — match against concept+hook, return concrete guidance.
+const MUSIC_RULES = [
+  { re: /recap|highlights|best moments|hype|crowd|peak|transformation/i, track: 'High-energy Bollywood/Punjabi drop — AP Dhillon, Diljit, Karan Aujla chart-toppers. Cut on the beat drop in the first 1.5s.' },
+  { re: /countdown|tomorrow|days until|48 ?hrs|doors open|final/i,        track: 'Trending Reels pulse/build-up sound (check the Reels Trending tab the week of posting — look for sounds climbing fast with <50k uses).' },
+  { re: /testimonial|couple|success|how we met|met at|proof/i,            track: 'Soft Hindi/Punjabi ballad — Arijit Singh / Rahat Fateh Ali Khan style. Keeps the emotional weight without overpowering the voiceover.' },
+  { re: /comedy|relatable|parents ask|cultural comedy|rishta|when your/i, track: 'Trending desi meme sound (weekly Reels Trending tab — meme audios peak fast, ride the wave same-week).' },
+  { re: /pov|walking into|first mixer|getting ready|grwm/i,               track: 'Current POV trending sound (sub-120 BPM, dreamy). Refresh weekly — POV sounds rotate fast.' },
+  { re: /outfit|fits|look/i,                                              track: 'Trending fit-check audio — Bollywood remix or Afrobeats hook with a strong first beat.' },
+  { re: /salsa|dancing|bachata/i,                                         track: 'Latin-desi fusion remix (Sidhu/Diljit × Bachata or Reggaeton blend).' },
+  { re: /bts|behind the scenes|chaos|planning/i,                          track: 'Lo-fi Bollywood instrumental or a playful trending sound — keeps the pace without pulling focus.' },
+  { re: /announcement|save the date|reveal|mark your calendars/i,         track: 'Trending Reels anthem with a "moment of arrival" feel — think Bollywood banger intros. First 2s MUST slap.' },
+  { re: /q&a|answered|explainer|guide|first time|what to expect/i,        track: 'Chill Lo-fi desi beat — keeps text-heavy content digestible. Voiceover optional.' },
+];
+function musicFor(post) {
+  if (post.type === 'IG image') {
+    return 'N/A — static image. If posting via Stories later, use the Music sticker with a trending 15s clip.';
+  }
+  if (post.type === 'IG carousel') {
+    return 'Optional — carousels don\'t auto-play audio, but add a trending 15s clip via the Music sticker to surface in Explore.';
+  }
+  const hay = (post.concept + ' ' + (post.hook || '')).toLowerCase();
+  for (const r of MUSIC_RULES) if (r.re.test(hay)) return r.track;
+  return 'Trending Reels audio — check the Reels "Trending" tab the day of posting. Look for sounds with climbing play counts and <50k total uses (you want to catch them on the way up).';
+}
+
+function onscreenTextFor(post) {
+  const base = (post.hook || '').trim();
+  const city = post.event?.venue?.city || 'the mixer';
+  if (!base) return `HOOK (first 1.5s): "${post.concept.slice(0, 50)}"`;
+  return base.replace(/\{city\}/g, city);
+}
+
+function captionFor(post) {
+  const hook = onscreenTextFor(post);
+  const isPromo = post.category === 'event-promo';
+  const event = post.event;
+  const city = event?.venue?.city || '';
+  const cityStr = city ? ` · ${city}` : '';
+  const eventDate = event ? new Date(event.start) : null;
+  const daysOut = eventDate ? Math.round((eventDate - new Date()) / 86400000) : null;
+  let when = '';
+  if (daysOut != null) {
+    if (daysOut <= 0) when = 'Tonight';
+    else if (daysOut === 1) when = 'Tomorrow';
+    else if (daysOut <= 7) when = `This ${eventDate.toLocaleDateString('en-US', { weekday: 'long' })}`;
+    else when = `${daysOut} days out`;
+  }
+
+  if (isPromo && event) {
+    return [
+      hook,
+      '',
+      `${when}${cityStr} — ${event.name}.`,
+      'No dating apps. No pressure. Real chemistry in the room.',
+      '',
+      `🎟 Link in bio — our last ${city || 'mixer'} sold out in 48hrs.`,
+      'Tag the single friend who needs to be there 👇',
+    ].join('\n');
+  }
+  return [
+    hook,
+    '',
+    post.concept + '.',
+    '',
+    'Double-tap if this is you. Tag someone who needs to see this.',
+    '🎟 Next mixer → link in bio.',
+  ].join('\n');
+}
+
+function buildContentDetails(post) {
+  return {
+    caption:  captionFor(post),
+    hashtags: hashtagsFor(post),
+    music:    musicFor(post),
+    onscreen: onscreenTextFor(post),
+  };
+}
 
 // ── Plan generator (DAILY POSTING + STORIES) ──
 function buildPlan(analysis, events, { weeks = 8, postsPerDay = 1, storiesPerDay = 5 } = {}) {
@@ -997,16 +1173,58 @@ function renderWeekGrid(plan) {
 }
 
 function renderPostTable(plan) {
-  const rows = plan.posts.map(p => {
+  const rows = plan.posts.map((p, idx) => {
     const tk = (p.type || '').replace('IG ', '').toLowerCase();
-    return `<tr>
+    const d = buildContentDetails(p);
+    const tagChips = d.hashtags.map(h => `<span class="tag-chip${h.live ? ' live' : ''}" title="${h.live ? 'Top performer from your IG data' : 'Curated base tag'}">${escHtml(h.tag)}</span>`).join('');
+    const tagPlain = d.hashtags.map(h => h.tag).join(' ');
+    const captionPlusTags = d.caption + '\n\n' + tagPlain;
+    const liveCount = d.hashtags.filter(h => h.live).length;
+
+    return `<tr class="post-row" data-idx="${idx}" onclick="togglePostDetail(${idx})">
       <td>${fmtDateFull(p.scheduled_at)}</td>
       <td>${p.scheduled_at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</td>
       <td><span class="pill pill-${tk}">${tk}</span></td>
       <td>${escHtml(p.concept)}</td>
       <td style="font-size:11px;color:var(--text-dim)">${escHtml(p.hook || '')}</td>
-      <td>${p.event ? `<a href="${escHtml(p.event.url || '#')}" target="_blank" style="font-size:11px">${escHtml(p.event.name).slice(0,25)}</a>` : '<span class="muted">Organic</span>'}</td>
+      <td>${p.event ? `<a href="${escHtml(p.event.url || '#')}" target="_blank" style="font-size:11px" onclick="event.stopPropagation()">${escHtml(p.event.name).slice(0,25)}</a>` : '<span class="muted">Organic</span>'}</td>
       <td class="num">${fmt(Math.round(p.projected_reach))}</td>
+    </tr>
+    <tr class="post-detail" data-detail="${idx}">
+      <td colspan="7">
+        <div class="detail-wrap">
+          <div class="detail-section wide">
+            <div class="ds-head">
+              <span>Caption</span>
+              <button class="copy-btn" data-copy="${escHtml(captionPlusTags)}">Copy caption + tags</button>
+            </div>
+            <div class="ds-body">${escHtml(d.caption)}</div>
+          </div>
+
+          <div class="detail-section">
+            <div class="ds-head">
+              <span>On-screen text (first 1.5s)</span>
+              <button class="copy-btn" data-copy="${escHtml(d.onscreen)}">Copy</button>
+            </div>
+            <div class="onscreen-box">${escHtml(d.onscreen)}</div>
+          </div>
+
+          <div class="detail-section">
+            <div class="ds-head">
+              <span>Music</span>
+            </div>
+            <div class="ds-body">${escHtml(d.music)}</div>
+          </div>
+
+          <div class="detail-section wide">
+            <div class="ds-head">
+              <span>Hashtags · ${liveCount ? `<span style="color:var(--green)">${liveCount} from your top performers</span> + ${d.hashtags.length - liveCount} curated` : `${d.hashtags.length} curated (no IG data yet — refresh to mine your top performers)`}</span>
+              <button class="copy-btn" data-copy="${escHtml(tagPlain)}">Copy all</button>
+            </div>
+            <div class="ds-body">${tagChips}</div>
+          </div>
+        </div>
+      </td>
     </tr>`;
   }).join('');
   return `<div class="posts-table" style="max-height:600px;overflow-y:auto"><table>
@@ -1016,6 +1234,29 @@ function renderPostTable(plan) {
     <tbody>${rows || '<tr><td colspan="7" class="muted" style="text-align:center;padding:24px">No posts planned.</td></tr>'}</tbody>
   </table></div>`;
 }
+
+function togglePostDetail(idx) {
+  const row = document.querySelector(`tr.post-row[data-idx="${idx}"]`);
+  const detail = document.querySelector(`tr.post-detail[data-detail="${idx}"]`);
+  if (!row || !detail) return;
+  const opening = !row.classList.contains('open');
+  row.classList.toggle('open', opening);
+  detail.classList.toggle('open', opening);
+}
+
+// Delegated copy-button handler (event bubbling, so table rebuilds don't need re-binding)
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.copy-btn');
+  if (!btn) return;
+  e.stopPropagation();
+  const text = btn.getAttribute('data-copy') || '';
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.classList.add('copied');
+    btn.textContent = '✓ Copied';
+    setTimeout(() => { btn.classList.remove('copied'); btn.textContent = orig; }, 1400);
+  }).catch(() => { btn.textContent = 'Copy failed'; });
+});
 
 function renderFormatChart(plan) {
   return `<div class="two-col">
@@ -1146,6 +1387,7 @@ async function loadAll(forceFresh) {
   STATE.igPosts = igPayload.posts || [];
   STATE.events = events || [];
   STATE.analysis = analyzePerformance(STATE.igPosts);
+  TOP_HASHTAGS_LIVE = mineTopHashtags(STATE.igPosts);
 
   if (igPayload.account?.followers_count && !document.getElementById('current-followers').dataset.touched) {
     document.getElementById('current-followers').value = igPayload.account.followers_count;
